@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import "tailwindcss";
+* {
+  font-family: "Outfit", sans-serif;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.cl-rootBox,
+.cl-cardBox,
+.cl-card,
+.cl-main,
+.cl-form,
+.cl-socialButtons,
+.cl-socialButtonsIconButton,
+.cl-socialButtonsBlockButton,
+.cl-footer {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.cl-cardBox,
+.cl-card {
+  overflow: hidden;
+}
