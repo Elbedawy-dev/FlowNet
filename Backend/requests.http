@@ -1,0 +1,380 @@
+### =========================================================================
+### FlowNet Backend API - REST Client Collection
+### Set your environment variables below or in a VS Code .env / settings
+### =========================================================================
+@baseUrl = http://localhost:5000
+@token = YOUR_CLERK_SESSION_JWT_HERE
+@targetUserId = user_2sample_owner
+@postId = SAMPLE_POST_ID_HERE
+@commentId = SAMPLE_COMMENT_ID_HERE
+@storyId = SAMPLE_STORY_ID_HERE
+@groupId = SAMPLE_GROUP_ID_HERE
+@notificationId = SAMPLE_NOTIFICATION_ID_HERE
+
+### =========================================================================
+### 1. HEALTH CHECKS
+### =========================================================================
+
+### Root Health Check
+GET {{baseUrl}}/health
+
+### API Health Check
+GET {{baseUrl}}/api/health
+
+### =========================================================================
+### 2. CLERK WEBHOOKS
+### =========================================================================
+
+### Clerk Webhook Simulation (Requires valid Svix headers)
+POST {{baseUrl}}/api/webhooks/clerk
+Content-Type: application/json
+svix-id: msg_test_12345
+svix-timestamp: 1614556800
+svix-signature: v1,test_signature_here
+
+{
+  "type": "user.created",
+  "data": {
+    "id": "user_clerk_test_999",
+    "email_addresses": [
+      {
+        "id": "email_1",
+        "email_address": "test_clerk@flownet.local"
+      }
+    ],
+    "primary_email_address_id": "email_1",
+    "first_name": "Test",
+    "last_name": "User",
+    "username": "test_user_clerk",
+    "image_url": "https://example.com/avatar.jpg"
+  }
+}
+
+### =========================================================================
+### 3. USER PROFILE, SETTINGS & SEARCH
+### =========================================================================
+
+### Get Current User Profile
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+
+### Update Current User Profile (JSON)
+PUT {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "full_name": "Alex Flow",
+  "username": "alex_flow",
+  "bio": "Building cosmic apps on FlowNet 🌌",
+  "location": "Cairo, Egypt"
+}
+
+### Search Users (query = "flownet")
+GET {{baseUrl}}/api/users/search?q=flownet&page=1&limit=20
+Authorization: Bearer {{token}}
+
+### Get Suggested Users (empty query)
+GET {{baseUrl}}/api/users/search?page=1&limit=20
+Authorization: Bearer {{token}}
+
+### Get User Profile by ID
+GET {{baseUrl}}/api/users/{{targetUserId}}
+Authorization: Bearer {{token}}
+
+### Get User Posts (posts)
+GET {{baseUrl}}/api/users/{{targetUserId}}/posts?type=posts&limit=20
+Authorization: Bearer {{token}}
+
+### Get User Media Posts (images/media only)
+GET {{baseUrl}}/api/users/{{targetUserId}}/posts?type=media&limit=20
+Authorization: Bearer {{token}}
+
+### Get Current User Network (followers, following, pending, connections)
+GET {{baseUrl}}/api/users/me/network
+Authorization: Bearer {{token}}
+
+### Get Blocked Users List
+GET {{baseUrl}}/api/users/me/blocked
+Authorization: Bearer {{token}}
+
+### Update Settings (Privacy, Appearance, Notifications)
+PUT {{baseUrl}}/api/users/me/settings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "privacy": {
+    "is_private_account": false,
+    "who_can_message": "everyone",
+    "show_location": true
+  },
+  "appearance": {
+    "theme": "cosmic",
+    "language": "ar"
+  },
+  "notifications": {
+    "likes": true,
+    "comments": true,
+    "follows": true,
+    "messages": true,
+    "requests": true
+  }
+}
+
+### Deactivate Account (Danger Zone)
+PUT {{baseUrl}}/api/users/me/deactivate
+Authorization: Bearer {{token}}
+
+### Delete Account Permanently (Danger Zone - Cascade Deletes Everything)
+DELETE {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+
+### =========================================================================
+### 4. FOLLOW & BLOCK
+### =========================================================================
+
+### Follow User
+POST {{baseUrl}}/api/users/{{targetUserId}}/follow
+Authorization: Bearer {{token}}
+
+### Unfollow User
+DELETE {{baseUrl}}/api/users/{{targetUserId}}/follow
+Authorization: Bearer {{token}}
+
+### Block User (Removes relations both ways, suppresses feeds and chats)
+POST {{baseUrl}}/api/users/{{targetUserId}}/block
+Authorization: Bearer {{token}}
+
+### Unblock User
+DELETE {{baseUrl}}/api/users/{{targetUserId}}/block
+Authorization: Bearer {{token}}
+
+### =========================================================================
+### 5. CONNECTIONS
+### =========================================================================
+
+### Send Connection Request
+POST {{baseUrl}}/api/connections/{{targetUserId}}/request
+Authorization: Bearer {{token}}
+
+### Accept Incoming Connection Request
+POST {{baseUrl}}/api/connections/{{targetUserId}}/accept
+Authorization: Bearer {{token}}
+
+### Reject Incoming Connection Request
+POST {{baseUrl}}/api/connections/{{targetUserId}}/reject
+Authorization: Bearer {{token}}
+
+### Remove Connection or Cancel Request
+DELETE {{baseUrl}}/api/connections/{{targetUserId}}
+Authorization: Bearer {{token}}
+
+### =========================================================================
+### 6. POSTS, FEED, LIKES & COMMENTS
+### =========================================================================
+
+### Create Post (Text & Images)
+POST {{baseUrl}}/api/posts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Excited to launch our new social network FlowNet! 🚀 #launch #community",
+  "image_urls": [
+    "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+  ]
+}
+
+### Get Feed (Global scope - default)
+GET {{baseUrl}}/api/posts/feed?scope=global&limit=20
+Authorization: Bearer {{token}}
+
+### Get Feed (Following & Connections scope)
+GET {{baseUrl}}/api/posts/feed?scope=following&limit=20
+Authorization: Bearer {{token}}
+
+### Get Post Details
+GET {{baseUrl}}/api/posts/{{postId}}
+Authorization: Bearer {{token}}
+
+### Delete Post (Owner only)
+DELETE {{baseUrl}}/api/posts/{{postId}}
+Authorization: Bearer {{token}}
+
+### Toggle Like on Post
+POST {{baseUrl}}/api/posts/{{postId}}/like
+Authorization: Bearer {{token}}
+
+### Share Post
+POST {{baseUrl}}/api/posts/{{postId}}/share
+Authorization: Bearer {{token}}
+
+### Get Post Comments
+GET {{baseUrl}}/api/posts/{{postId}}/comments
+Authorization: Bearer {{token}}
+
+### Add Comment to Post
+POST {{baseUrl}}/api/posts/{{postId}}/comments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "text": "This is a great milestone for FlowNet! Keep it up! 👏"
+}
+
+### Delete Comment (Comment author or Post owner)
+DELETE {{baseUrl}}/api/posts/{{postId}}/comments/{{commentId}}
+Authorization: Bearer {{token}}
+
+### =========================================================================
+### 7. STORIES
+### =========================================================================
+
+### Create Story (Text or Media)
+POST {{baseUrl}}/api/stories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Today's daily motivation story! ✨",
+  "background_color": "#7c3aed",
+  "media_type": "text"
+}
+
+### Get Active Stories
+GET {{baseUrl}}/api/stories
+Authorization: Bearer {{token}}
+
+### View Story (Registers view once)
+POST {{baseUrl}}/api/stories/{{storyId}}/view
+Authorization: Bearer {{token}}
+
+### Delete Story (Owner only)
+DELETE {{baseUrl}}/api/stories/{{storyId}}
+Authorization: Bearer {{token}}
+
+### =========================================================================
+### 8. MESSAGES (1:1 CHAT)
+### =========================================================================
+
+### Get Recent Messages (for Home Side Panel)
+GET {{baseUrl}}/api/messages/recent
+Authorization: Bearer {{token}}
+
+### Get Conversation Messages with User (Marks incoming as seen)
+GET {{baseUrl}}/api/messages/{{targetUserId}}?limit=30
+Authorization: Bearer {{token}}
+
+### Send 1:1 Message
+POST {{baseUrl}}/api/messages/{{targetUserId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "text": "Hey! How is your project going?"
+}
+
+### Mark Conversation Messages as Seen
+PUT {{baseUrl}}/api/messages/{{targetUserId}}/seen
+Authorization: Bearer {{token}}
+
+### =========================================================================
+### 9. NOTIFICATIONS
+### =========================================================================
+
+### Get All Notifications
+GET {{baseUrl}}/api/notifications?type=all&limit=20
+Authorization: Bearer {{token}}
+
+### Get Like Notifications
+GET {{baseUrl}}/api/notifications?type=likes&limit=20
+Authorization: Bearer {{token}}
+
+### Get Comment Notifications
+GET {{baseUrl}}/api/notifications?type=comments&limit=20
+Authorization: Bearer {{token}}
+
+### Get Media Notifications (where post has images)
+GET {{baseUrl}}/api/notifications?type=media&limit=20
+Authorization: Bearer {{token}}
+
+### Get Unread Notifications Count
+GET {{baseUrl}}/api/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### Mark All Notifications as Read
+PUT {{baseUrl}}/api/notifications/read
+Authorization: Bearer {{token}}
+
+### Mark Single Notification as Read
+PUT {{baseUrl}}/api/notifications/{{notificationId}}/read
+Authorization: Bearer {{token}}
+
+### =========================================================================
+### 10. GROUPS & GROUP CHAT
+### =========================================================================
+
+### Get Available Groups (where not a member)
+GET {{baseUrl}}/api/groups/available
+Authorization: Bearer {{token}}
+
+### Get Joined Groups
+GET {{baseUrl}}/api/groups/joined
+Authorization: Bearer {{token}}
+
+### Get My Groups (Owner/Admin)
+GET {{baseUrl}}/api/groups/mine
+Authorization: Bearer {{token}}
+
+### Create Group (Enabled if ALLOW_GROUP_CREATION=true)
+POST {{baseUrl}}/api/groups
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Design Pioneers",
+  "icon": "sparkles",
+  "description": "Community of UI/UX innovators and creative thinkers"
+}
+
+### Get Group Details
+GET {{baseUrl}}/api/groups/{{groupId}}
+Authorization: Bearer {{token}}
+
+### Request to Join Group
+POST {{baseUrl}}/api/groups/{{groupId}}/join-request
+Authorization: Bearer {{token}}
+
+### Cancel Group Join Request
+DELETE {{baseUrl}}/api/groups/{{groupId}}/join-request
+Authorization: Bearer {{token}}
+
+### Get Pending Join Requests (Owner/Admin only)
+GET {{baseUrl}}/api/groups/{{groupId}}/requests
+Authorization: Bearer {{token}}
+
+### Accept Join Request (Owner/Admin only)
+POST {{baseUrl}}/api/groups/{{groupId}}/requests/{{targetUserId}}/accept
+Authorization: Bearer {{token}}
+
+### Reject Join Request (Owner/Admin only)
+POST {{baseUrl}}/api/groups/{{groupId}}/requests/{{targetUserId}}/reject
+Authorization: Bearer {{token}}
+
+### Remove Member or Leave Group
+DELETE {{baseUrl}}/api/groups/{{groupId}}/members/{{targetUserId}}
+Authorization: Bearer {{token}}
+
+### Get Group Messages (Members only)
+GET {{baseUrl}}/api/groups/{{groupId}}/messages?limit=30
+Authorization: Bearer {{token}}
+
+### Send Group Message (Members only)
+POST {{baseUrl}}/api/groups/{{groupId}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "text": "Hello everyone in the group!"
+}

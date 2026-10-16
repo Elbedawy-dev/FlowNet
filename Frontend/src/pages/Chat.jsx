@@ -1,10 +1,462 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Send, Image as ImageIcon, X, ShieldAlert, Check, CheckCheck } from "lucide-react";
+import moment from "moment";
+import toast from "react-hot-toast";
+import { messagesApi, usersApi } from "../api/axios";
+import { useCurrentUser } from "../context/CurrentUserContext";
+import { useSocket } from "../context/SocketContext";
+import Avatar from "../components/Avatar";
+import Loading from "../components/Loading";
 
 const Chat = () => {
-  return (
-    <div>
-      <h1>Chat</h1>
-    </div>
-  )
-}
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useCurrentUser();
+  const { socket } = useSocket();
 
-export default Chat
+  const [messages, setMessages] = useState([]);
+  const [otherUser, setOtherUser] = useState(null);
+  const [blockedByThem, setBlockedByThem] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [inputText, setInputText] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
+
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = (behavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  const fetchConversation = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await messagesApi.getConversation(userId, null, 50);
+      setMessages(Array.isArray(res?.messages) ? res.messages : []);
+      setOtherUser(res?.other_user || null);
+      setBlockedByThem(Boolean(res?.blocked_by_them));
+      setBlockedByMe(Boolean(res?.blocked_by_me));
+
+      setTimeout(() => scrollToBottom("auto"), 150);
+    } catch (err) {
+      if (err.code === "BLOCKED_BY_USER") {
+        setBlockedByThem(true);
+      } else if (err.code === "MESSAGING_RESTRICTED") {
+        toast.error("This user only accepts messages from their connections");
+      } else {
+        toast.error(err.message || "Failed to load chat");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchConversation();
+  }, [fetchConversation]);
+
+  // Real-time socket message:new and message:seen
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (msg) => {
+      // Check if message belongs to this conversation
+      const isFromTarget = msg.from_user_id === userId && msg.to_user_id === currentUser?._id;
+      const isFromMe = msg.from_user_id === currentUser?._id && msg.to_user_id === userId;
+
+      if (isFromTarget || isFromMe) {
+        setMessages((prev) => {
+          // Avoid duplicate messages
+          if (prev.some((m) => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+        setTimeout(() => scrollToBottom("smooth"), 100);
+
+        // Mark as seen immediately if incoming
+        if (isFromTarget) {
+          messagesApi.markSeen(userId).catch(() => {});
+        }
+      }
+    };
+
+    const handleMessageSeen = (data) => {
+      if (data.seen_by === userId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.from_user_id === currentUser?._id ? { ...m, seen: true } : m
+          )
+        );
+      }
+    };
+
+    socket.on("message:new", handleNewMessage);
+    socket.on("message:seen", handleMessageSeen);
+
+    return () => {
+      socket.off("message:new", handleNewMessage);
+      socket.off("message:seen", handleMessageSeen);
+    };
+  }, [socket, userId, currentUser?._id]);
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be 5MB or less");
+      return;
+    }
+
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeSelectedImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  const handleSendMessage = async (e) => {
+    e?.preventDefault();
+    if ((!inputText.trim() && !selectedImage) || isSending) return;
+
+    const textToSend = inputText.trim();
+    const tempId = `temp-${Date.now()}`;
+
+    // Optimistic message
+    const optimisticMessage = {
+      _id: tempId,
+      from_user_id: currentUser?._id,
+      to_user_id: userId,
+      text: textToSend,
+      media_url: imagePreview,
+      message_type: selectedImage ? "image" : "text",
+      seen: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setInputText("");
+    const fileToUpload = selectedImage;
+    removeSelectedImage();
+    setIsSending(true);
+    setTimeout(() => scrollToBottom("smooth"), 50);
+
+    try {
+      let res;
+      if (fileToUpload) {
+        const formData = new FormData();
+        if (textToSend) formData.append("text", textToSend);
+        formData.append("image", fileToUpload);
+        res = await messagesApi.send(userId, formData);
+      } else {
+        res = await messagesApi.send(userId, { text: textToSend });
+      }
+
+      setMessages((prev) =>
+        prev.map((m) => (m._id === tempId ? res : m))
+      );
+    } catch (err) {
+      // Rollback optimistic message
+      setMessages((prev) => prev.filter((m) => m._id !== tempId));
+      if (err.code === "BLOCKED_BY_USER") {
+        setBlockedByThem(true);
+      } else if (err.code === "MESSAGING_RESTRICTED") {
+        toast.error("This user only accepts messages from their connections");
+      } else {
+        toast.error(err.message || "Failed to send message");
+      }
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleUnblockUser = async () => {
+    try {
+      await usersApi.unblock(userId);
+      setBlockedByMe(false);
+      toast.success("User unblocked");
+      fetchConversation();
+    } catch (err) {
+      toast.error(err.message || "Failed to unblock user");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+
+  // IF BLOCKED BY THEM: Show Arabic blocked notice
+  if (blockedByThem) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f]">
+        <div className="w-full max-w-lg p-8 rounded-3xl bg-linear-to-b from-purple-900/40 via-pink-900/30 to-indigo-950/60 border border-pink-500/30 shadow-[0_0_40px_rgba(236,72,153,0.35)] backdrop-blur-xl">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-pink-500/20 border border-pink-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(236,72,153,0.4)]">
+            <span className="text-3xl">😢</span>
+          </div>
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 mb-4" dir="rtl">
+            لقد قام هذا المستخدم بحظرك 😢
+          </h2>
+          <p className="text-base text-purple-200/90 leading-relaxed mb-6 font-medium" dir="rtl">
+            ✨💔 للأسف لا يمكنك مراسلته، ربما في المستقبل سيكون هناك فرصة للتواصل
+          </p>
+          <button
+            onClick={() => navigate("/messages")}
+            className="px-6 py-2.5 rounded-full bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm font-semibold shadow-lg transition-all active:scale-95 cursor-pointer"
+          >
+            العودة للرسائل
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white relative">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-[#0b0f3b]/80 backdrop-blur-xl border-b border-purple-500/20 shadow-md">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/messages")}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all cursor-pointer"
+          >
+            <ArrowLeft size={18} />
+          </button>
+
+          <div
+            onClick={() => navigate(`/profile/${userId}`)}
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            <Avatar
+              src={otherUser?.profile_picture}
+              name={otherUser?.full_name || otherUser?.username}
+              size="md"
+            />
+            <div>
+              <h3 className="font-bold text-sm text-white group-hover:text-indigo-300 transition-colors">
+                {otherUser?.full_name || "User"}
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                @{otherUser?.username || "user"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Blocked by Me Banner */}
+      {blockedByMe && (
+        <div className="bg-rose-950/80 border-b border-rose-500/30 px-4 py-2.5 flex items-center justify-between text-xs text-rose-200 backdrop-blur-md z-20">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={16} className="text-rose-400" />
+            <span>You have blocked this user. Unblock them to resume chatting.</span>
+          </div>
+          <button
+            onClick={handleUnblockUser}
+            className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold transition active:scale-95 cursor-pointer"
+          >
+            Unblock
+          </button>
+        </div>
+      )}
+
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-8 text-purple-300/60">
+            <Avatar
+              src={otherUser?.profile_picture}
+              name={otherUser?.full_name}
+              size="xl"
+              className="mb-3 opacity-80"
+            />
+            <p className="text-sm font-medium">Say hello to {otherUser?.full_name || "your friend"}! 👋</p>
+            <p className="text-xs text-purple-300/40 mt-1">Messages are private & real-time encrypted</p>
+          </div>
+        ) : (
+          messages.map((msg, index) => {
+            const isMe = msg.from_user_id === currentUser?._id;
+            const prevMsg = messages[index - 1];
+            const isDifferentDay =
+              !prevMsg ||
+              !moment(msg.createdAt).isSame(moment(prevMsg.createdAt), "day");
+
+            return (
+              <div key={msg._id || index} className="space-y-2">
+                {/* Date separator */}
+                {isDifferentDay && (
+                  <div className="flex items-center justify-center my-4">
+                    <span className="text-[11px] text-purple-300/50 bg-white/5 border border-purple-500/20 px-3 py-0.5 rounded-full">
+                      {moment(msg.createdAt).calendar(null, {
+                        sameDay: "[Today]",
+                        lastDay: "[Yesterday]",
+                        lastWeek: "dddd, MMMM D",
+                        sameElse: "MMMM D, YYYY",
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Bubble row */}
+                <div
+                  className={`flex items-end gap-2 ${
+                    isMe ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {!isMe && (
+                    <Avatar
+                      src={otherUser?.profile_picture}
+                      name={otherUser?.full_name}
+                      size="xs"
+                      className="mb-1"
+                    />
+                  )}
+
+                  <div
+                    className={`max-w-[78%] sm:max-w-[65%] rounded-3xl p-3.5 shadow-md ${
+                      isMe
+                        ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white rounded-br-xs shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                        : "bg-[#182034] text-purple-100 rounded-bl-xs border border-purple-500/15"
+                    }`}
+                  >
+                    {/* Media attachment */}
+                    {msg.media_url && (
+                      <div className="mb-2 rounded-2xl overflow-hidden cursor-pointer">
+                        <img
+                          src={msg.media_url}
+                          alt="Message attachment"
+                          onClick={() => setViewingImage(msg.media_url)}
+                          className="max-h-60 w-full object-cover rounded-2xl hover:opacity-95 transition"
+                        />
+                      </div>
+                    )}
+
+                    {/* Text */}
+                    {msg.text && (
+                      <p className="text-sm whitespace-pre-line break-words leading-relaxed">
+                        {msg.text}
+                      </p>
+                    )}
+
+                    {/* Timestamp & seen indicator */}
+                    <div
+                      className={`flex items-center gap-1 text-[10px] mt-1 ${
+                        isMe ? "text-purple-200 justify-end" : "text-gray-400 justify-start"
+                      }`}
+                    >
+                      <span>{moment(msg.createdAt).format("h:mm A")}</span>
+                      {isMe && (
+                        <span>
+                          {msg.seen ? (
+                            <CheckCheck size={13} className="text-cyan-300" />
+                          ) : (
+                            <Check size={13} className="text-purple-200" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isMe && (
+                    <Avatar
+                      src={currentUser?.profile_picture}
+                      name={currentUser?.full_name}
+                      size="xs"
+                      className="mb-1"
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Image Preview Chip */}
+      {imagePreview && (
+        <div className="px-4 py-2 bg-[#0f172a]/90 border-t border-purple-500/20 flex items-center gap-3">
+          <div className="relative">
+            <img
+              src={imagePreview}
+              alt="Upload preview"
+              className="w-16 h-16 object-cover rounded-xl border border-purple-500/40"
+            />
+            <button
+              onClick={removeSelectedImage}
+              className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-0.5 shadow cursor-pointer"
+            >
+              <X size={12} />
+            </button>
+          </div>
+          <span className="text-xs text-purple-300">Image attached. Ready to send!</span>
+        </div>
+      )}
+
+      {/* Bottom Floating Input Bar */}
+      {!blockedByThem && (
+        <form
+          onSubmit={handleSendMessage}
+          className="p-3 bg-[#0b0f3b]/90 backdrop-blur-md border-t border-purple-500/20 flex items-center gap-2"
+        >
+          <label className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-purple-300 hover:text-white transition cursor-pointer border border-purple-500/20">
+            <ImageIcon size={19} />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+          </label>
+
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Type a message..."
+            disabled={blockedByMe}
+            className="flex-1 py-3 px-5 text-sm rounded-full bg-[#182034] text-white placeholder-purple-300/40 border border-purple-500/25 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
+          />
+
+          <button
+            type="submit"
+            disabled={(!inputText.trim() && !selectedImage) || isSending || blockedByMe}
+            className="p-3 rounded-full bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.5)] disabled:opacity-40 cursor-pointer"
+          >
+            <Send size={18} />
+          </button>
+        </form>
+      )}
+
+      {/* Fullscreen Image Viewer Modal */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setViewingImage(null)}
+        >
+          <img
+            src={viewingImage}
+            alt="Fullscreen"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Chat;

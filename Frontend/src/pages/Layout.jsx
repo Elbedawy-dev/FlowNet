@@ -3,31 +3,38 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Loading from "../components/Loading";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 const Layout = () => {
-  const user = true;
+  const { loading } = useCurrentUser();
   const [sideBarOpen, setSideBarOpen] = useState(false);
 
-  return user ? (
-    <div className="w-full flex h-screen">
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f]">
+        <Loading />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full flex h-screen bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white overflow-hidden relative">
       <Sidebar sideBarOpen={sideBarOpen} setSideBarOpen={setSideBarOpen} />
-      <div className="flex-1 bg-slate-50">
+      <div className="flex-1 w-full h-full sm:pl-20 overflow-y-auto no-scrollbar">
         <Outlet />
       </div>
       {sideBarOpen ? (
-        
-        <X className="absolute top-3 p-2 z-100 right-3 bg-white rounded-md shadow w-10 h-10 
-          text-gray-600 sm:hidden cursor-pointer"
-          onClick={() => setSideBarOpen(false)} />
+        <X
+          className="fixed top-4 right-4 p-2 z-50 bg-purple-900/80 text-white rounded-2xl border border-purple-500/40 shadow-lg w-10 h-10 sm:hidden cursor-pointer backdrop-blur"
+          onClick={() => setSideBarOpen(false)}
+        />
       ) : (
-        
-        <Menu className="absolute top-3 right-3 p-2 z-100 bg-[#1f2937] rounded-md shadow w-10 h-10
-           text-gray-600 sm:hidden cursor-pointer" 
-          onClick={() => setSideBarOpen(true)} />
+        <Menu
+          className="fixed top-4 right-4 p-2 z-50 bg-purple-900/80 text-white rounded-2xl border border-purple-500/40 shadow-lg w-10 h-10 sm:hidden cursor-pointer backdrop-blur"
+          onClick={() => setSideBarOpen(true)}
+        />
       )}
     </div>
-  ) : (
-    <Loading />
   );
 };
 
