@@ -9,9 +9,15 @@
     "start": "node server.js",
     "seed": "node src/seed/seed.js"
   },
+  "engines": { 
+    "node": "22.x"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "overrides": {
+    "htmlparser2": "8.0.0"
+  },
   "dependencies": {
     "@clerk/express": "^2.1.80",
     "cloudinary": "^2.11.0",
@@ -24,7 +30,7 @@
     "mongoose": "^9.11.2",
     "morgan": "^1.12.1",
     "multer": "^2.4.0",
-    "sanitize-html": "^2.18.1",
+    "sanitize-html": "2.13.1",
     "socket.io": "^4.8.4",
     "svix": "^2.8.0",
     "zod": "^4.6.7"
@@ -32,4 +38,5 @@
   "devDependencies": {
     "nodemon": "^3.1.14"
   }
+  
 }
