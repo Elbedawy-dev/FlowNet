@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { assets } from "../assets/assets";
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { useState } from "react";
+import Logo from "../components/Logo";
 
 const STARS = Array(15)
   .fill(0)
@@ -54,14 +55,14 @@ const Login = () => {
       </div>
 
       <div className="flex-1 w-full min-w-0 flex flex-col items-start justify-between lg:p-40 p-6 md:p-10 z-10">
-        <motion.img
-          src={assets.logo}
-          alt="FlowNet"
-          className="h-12 object-contain mb-6"
-          initial={{ opacity: 0, y: -50 }}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-        />
+          transition={{ duration: 0.8 }}
+        >
+          <Logo iconClassName="w-12 h-12" textClassName="text-3xl font-extrabold" />
+        </motion.div>
 
         <div>
           <div className="flex items-center gap-3 mb-6 max-md:mt-10">
