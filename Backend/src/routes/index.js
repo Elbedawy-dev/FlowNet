@@ -14,9 +14,7 @@ const router = Router();
 router.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    service: 'FlowNet Backend API',
+    status: 'ok',
   });
 });
 

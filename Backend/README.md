@@ -14,10 +14,10 @@ Production-quality Backend service for **FlowNet**, a social network platform bu
 - **Realtime**: `Socket.io`
 - **File Uploads**: `multer` (memory storage) + `cloudinary` (images and videos <= 60s)
 - **Validation**: `zod`
-- **Security & Performance**: `helmet`, `cors`, `compression`, `morgan`, `express-rate-limit`, `sanitize-html`
+- **Security & Performance**: `helmet`, `cors`, `compression`, `morgan`, `express-rate-limit`, dependency-free tag stripper
 - **Development**: `dotenv`, `nodemon`
 
----
+> **Note on Vercel Deployment**: Socket.io (real-time messages, notifications, group chat) cannot run on Vercel serverless and requires a persistent host such as Render or Railway; all REST API endpoints work seamlessly on Vercel.
 
 ## 📁 Directory Structure
 
@@ -70,7 +70,7 @@ Backend/
 │   │   ├── apiError.js       # Standardized ApiError with machine error codes
 │   │   ├── asyncHandler.js   # Express async promise catch wrapper
 │   │   ├── pagination.js     # Cursor-based & page-based pagination helpers
-│   │   ├── sanitize.js       # HTML tag stripping using sanitize-html
+│   │   ├── sanitize.js       # Dependency-free HTML tag stripping
 │   │   └── blockUtils.js     # Bidirectional block querying & enforcement
 │   └── seed/
 │       └── seed.js           # Database seeder (5 groups & sample posts)
