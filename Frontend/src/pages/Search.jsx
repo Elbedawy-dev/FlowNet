@@ -4,11 +4,13 @@ import { Compass, Search as SearchIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { usersApi } from "../api/axios";
 import { useDebounce } from "../hooks/useDebounce";
+import { useLanguage } from "../context/LanguageContext";
 import UserCard from "../components/UserCard";
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 
 const Search = () => {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
 
@@ -73,35 +75,35 @@ const Search = () => {
         ...prev,
         [userId]: isCurrentlyFollowing,
       }));
-      toast.error(err.message || "Failed to update follow status");
+      toast.error(err.message || t("common.error"));
     }
   };
 
   return (
-    <div className="min-h-full py-10 px-4 flex flex-col items-center bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white pb-32">
+    <div className="min-h-full py-10 px-4 flex flex-col items-center text-app pb-32">
       {/* Header Title */}
       <div className="text-center max-w-xl mb-8">
         <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-pink-500/10 border border-pink-500/20 mb-3 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
           <Compass className="w-8 h-8 text-pink-400 animate-pulse" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300 drop-shadow-[0_0_15px_rgba(236,72,153,0.4)]">
-          Discover People
+          {t("search.title")}
         </h1>
-        <p className="text-purple-200/70 text-sm mt-2">
-          Connect with amazing people and grow your magical network
+        <p className="text-app-muted text-sm mt-2">
+          {t("search.subtitle")}
         </p>
       </div>
 
       {/* Glass Search Bar */}
       <div className="w-full max-w-2xl relative mb-10">
         <div className="relative flex items-center">
-          <SearchIcon className="absolute left-4 w-5 h-5 text-purple-300/60" />
+          <SearchIcon className="absolute left-4 w-5 h-5 text-app-muted" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, username, bio, or location..."
-            className="w-full pl-12 pr-4 py-3.5 text-sm sm:text-base rounded-full bg-white/5 border border-purple-500/30 text-white placeholder-purple-300/50 backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all shadow-[0_0_25px_rgba(131,58,180,0.25)]"
+            placeholder={t("search.placeholder")}
+            className="w-full pl-12 pr-4 py-3.5 text-sm sm:text-base rounded-full bg-app-card border border-app text-app placeholder-app-muted backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all shadow-[0_0_25px_rgba(131,58,180,0.15)]"
           />
         </div>
       </div>
@@ -114,9 +116,9 @@ const Search = () => {
           </div>
         ) : users.length === 0 ? (
           <EmptyState
-            title="No users found"
-            message="No users found. Try searching something else..."
-            actionText={query ? "Clear search" : undefined}
+            title={t("search.noUsers")}
+            message={t("search.noUsers")}
+            actionText={query ? t("common.cancel") : undefined}
             onAction={query ? () => setQuery("") : undefined}
           />
         ) : (

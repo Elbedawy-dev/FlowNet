@@ -29,7 +29,7 @@ const UserCard = ({
   return (
     <div
       onClick={handleProfileClick}
-      className="bg-white/5 backdrop-blur-xl border border-purple-500/20 hover:border-pink-500/40 rounded-3xl p-5 flex flex-col items-center text-center shadow-[0_0_25px_rgba(131,58,180,0.3)] hover:shadow-[0_0_35px_rgba(236,72,153,0.4)] hover:scale-[1.02] transition-all duration-300 cursor-pointer relative group"
+      className="bg-app-card backdrop-blur-xl border border-app hover:border-pink-500/40 rounded-3xl p-5 flex flex-col items-center text-center shadow-[0_0_25px_rgba(131,58,180,0.2)] hover:shadow-[0_0_35px_rgba(236,72,153,0.35)] hover:scale-[1.02] transition-all duration-300 cursor-pointer relative group"
     >
       <div className="relative mb-3">
         <Avatar
@@ -40,26 +40,26 @@ const UserCard = ({
         />
       </div>
 
-      <h3 className="font-bold text-white text-base truncate max-w-full hover:text-pink-300 transition-colors">
+      <h3 className="font-bold text-app text-base truncate max-w-full hover:text-pink-400 transition-colors">
         {user.full_name || 'FlowNet User'}
       </h3>
-      <p className="text-gray-400 text-xs mb-2">@{user.username || 'user'}</p>
+      <p className="text-app-muted text-xs mb-2">@{user.username || 'user'}</p>
 
       {user.bio && (
-        <p className="text-purple-200/80 text-xs line-clamp-2 mb-3 min-h-[32px] px-2">
+        <p className="text-app-muted text-xs line-clamp-2 mb-3 min-h-[32px] px-2">
           {user.bio}
         </p>
       )}
 
       {/* Info chips */}
-      <div className="flex items-center gap-2 mb-4 text-[11px] text-purple-300 flex-wrap justify-center">
+      <div className="flex items-center gap-2 mb-4 text-[11px] text-app-muted flex-wrap justify-center">
         {user.location && (
-          <span className="flex items-center gap-1 bg-purple-900/40 px-2.5 py-1 rounded-full border border-purple-500/20">
+          <span className="flex items-center gap-1 bg-app-input px-2.5 py-1 rounded-full border border-app">
             <MapPin size={12} className="text-pink-400" />
             <span className="truncate max-w-28">{user.location}</span>
           </span>
         )}
-        <span className="flex items-center gap-1 bg-purple-900/40 px-2.5 py-1 rounded-full border border-purple-500/20">
+        <span className="flex items-center gap-1 bg-app-input px-2.5 py-1 rounded-full border border-app">
           <Users size={12} className="text-indigo-400" />
           <span>{user.followers_count ?? (user.followers?.length || 0)} Followers</span>
         </span>
@@ -90,7 +90,7 @@ const UserCard = ({
         <button
           onClick={handleMessageClick}
           aria-label="Send message"
-          className="p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-purple-500/30 text-purple-200 hover:text-white transition-all active:scale-95 cursor-pointer shadow-sm"
+          className="p-2 rounded-2xl bg-app-input hover:bg-white/10 border border-app text-app transition-all active:scale-95 cursor-pointer shadow-sm"
         >
           <MessageCircle size={16} />
         </button>

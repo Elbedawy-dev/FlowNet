@@ -3,7 +3,8 @@ import { User } from '../models/User.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getBlockedUserIds, isBlockedEitherWay } from '../utils/blockUtils.js';
-import { uploadFromBuffer, deleteResource } from '../config/cloudinary.js';
+import { uploadFromBuffer, deleteResource, extractPublicId } from '../config/cloudinary.js';
+import { sanitizeText } from '../utils/sanitize.js';
 
 /**
  * POST /api/stories
@@ -136,6 +137,49 @@ export const viewStory = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/stories/:id
+ * Update story (owner only, text stories only)
+ */
+export const updateStory = asyncHandler(async (req, res) => {
+  const currentUserId = req.userId;
+  const story = await Story.findById(req.params.id);
+
+  if (!story) {
+    throw ApiError.notFound('Story not found');
+  }
+
+  if (story.user.toString() !== currentUserId) {
+    throw ApiError.forbidden('You can only edit your own stories');
+  }
+
+  if (story.media_type !== 'text') {
+    throw ApiError.badRequest(
+      'Only text stories can be edited. Media stories can only be deleted and recreated.',
+      'CANNOT_EDIT_MEDIA_STORY'
+    );
+  }
+
+  if (req.body.content !== undefined) {
+    story.content = sanitizeText(req.body.content);
+  }
+
+  if (req.body.background_color) {
+    story.background_color = req.body.background_color;
+  }
+
+  await story.save();
+
+  const populated = await Story.findById(story._id)
+    .populate('user', '_id full_name username profile_picture is_verified')
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    data: populated,
+  });
+});
+
+/**
  * DELETE /api/stories/:id
  * Delete story (owner only)
  */
@@ -149,6 +193,14 @@ export const deleteStory = asyncHandler(async (req, res) => {
 
   if (story.user.toString() !== currentUserId) {
     throw ApiError.forbidden('You can only delete your own stories');
+  }
+
+  // Delete media asset from Cloudinary if present
+  if (story.media_url) {
+    const publicId = extractPublicId(story.media_url);
+    if (publicId) {
+      await deleteResource(publicId, story.media_type === 'video' ? 'video' : 'image');
+    }
   }
 
   await Story.findByIdAndDelete(story._id);

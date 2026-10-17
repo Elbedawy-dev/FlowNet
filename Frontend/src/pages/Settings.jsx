@@ -14,10 +14,15 @@ import {
   UserX,
   Trash2,
   PowerOff,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usersApi } from '../api/axios';
 import { useCurrentUser } from '../context/CurrentUserContext';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import Avatar from '../components/Avatar';
 import ConfirmModal from '../components/ConfirmModal';
 import Loading from '../components/Loading';
@@ -25,6 +30,8 @@ import Loading from '../components/Loading';
 const Settings = () => {
   const { signOut } = useClerk();
   const { currentUser, refreshUser, loading: userLoading } = useCurrentUser();
+  const { palette, mode, setPalette, setMode } = useTheme();
+  const { lang, setLang, t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('general'); // general | privacy | appearance | notifications | danger
 
@@ -39,11 +46,6 @@ const Settings = () => {
     is_private_account: false,
     show_location: true,
     who_can_message: 'everyone',
-  });
-
-  const [appearanceForm, setAppearanceForm] = useState({
-    theme: 'cosmic',
-    language: 'en',
   });
 
   const [notificationsForm, setNotificationsForm] = useState({
@@ -78,11 +80,6 @@ const Settings = () => {
         is_private_account: Boolean(s.privacy?.is_private_account),
         show_location: s.privacy?.show_location !== false,
         who_can_message: s.privacy?.who_can_message || 'everyone',
-      });
-
-      setAppearanceForm({
-        theme: s.appearance?.theme || 'cosmic',
-        language: s.appearance?.language || 'en',
       });
 
       setNotificationsForm({
@@ -124,13 +121,10 @@ const Settings = () => {
         bio: generalForm.bio.trim(),
       });
       await refreshUser();
-      toast.success('Profile updated successfully!', {
-        icon: '✨',
-        style: { background: '#1a1f4d', color: '#fff', border: '1px solid rgba(168,85,247,0.4)' },
-      });
+      toast.success(t('profile.profileUpdated') || 'Profile updated successfully! ✨');
     } catch (err) {
       if (err.code === 'USERNAME_TAKEN' || err.message?.includes('already taken')) {
-        toast.error('Username is already taken. Please choose another one.');
+        toast.error(t('profile.usernameTaken') || 'Username is already taken. Please choose another one.');
       } else {
         toast.error(err.message || 'Failed to update profile');
       }
@@ -146,10 +140,7 @@ const Settings = () => {
       setSaving(true);
       await usersApi.updateSettings({ privacy: privacyForm });
       await refreshUser();
-      toast.success('Privacy settings saved!', {
-        icon: '🛡️',
-        style: { background: '#1a1f4d', color: '#fff', border: '1px solid rgba(168,85,247,0.4)' },
-      });
+      toast.success(t('settings.privacy.saveButton') || 'Privacy settings saved!');
     } catch (err) {
       toast.error(err.message || 'Failed to save privacy settings');
     } finally {
@@ -157,22 +148,20 @@ const Settings = () => {
     }
   };
 
-  // Appearance Form Submit
-  const handleSaveAppearance = async (e) => {
-    e?.preventDefault();
-    try {
-      setSaving(true);
-      await usersApi.updateSettings({ appearance: appearanceForm });
-      await refreshUser();
-      toast.success('Appearance preferences updated!', {
-        icon: '🎨',
-        style: { background: '#1a1f4d', color: '#fff', border: '1px solid rgba(168,85,247,0.4)' },
-      });
-    } catch (err) {
-      toast.error(err.message || 'Failed to save appearance');
-    } finally {
-      setSaving(false);
-    }
+  // Appearance actions (instant live preview + backend persist + toast)
+  const handleSelectPalette = (newPalette) => {
+    setPalette(newPalette, true);
+    toast.success(t('settings.appearance.savedToast') || 'Appearance preferences updated! ✨');
+  };
+
+  const handleSelectMode = (newMode) => {
+    setMode(newMode, true);
+    toast.success(t('settings.appearance.savedToast') || 'Appearance preferences updated! ✨');
+  };
+
+  const handleSelectLanguage = (newLang) => {
+    setLang(newLang, true);
+    toast.success(t('settings.appearance.savedToast') || 'Language updated! ✨');
   };
 
   // Notifications Form Submit
@@ -182,10 +171,7 @@ const Settings = () => {
       setSaving(true);
       await usersApi.updateSettings({ notifications: notificationsForm });
       await refreshUser();
-      toast.success('Notification preferences saved!', {
-        icon: '🔔',
-        style: { background: '#1a1f4d', color: '#fff', border: '1px solid rgba(168,85,247,0.4)' },
-      });
+      toast.success(t('settings.notificationsTab.saveButton') || 'Notification preferences saved!');
     } catch (err) {
       toast.error(err.message || 'Failed to save notifications');
     } finally {
@@ -199,7 +185,7 @@ const Settings = () => {
       setUnblockingId(userId);
       await usersApi.unblock(userId);
       setBlockedUsers((prev) => prev.filter((u) => u._id !== userId));
-      toast.success('User unblocked successfully');
+      toast.success(t('settings.privacy.unblock') || 'User unblocked successfully');
     } catch (err) {
       toast.error(err.message || 'Failed to unblock user');
     } finally {
@@ -212,7 +198,7 @@ const Settings = () => {
     try {
       setDangerLoading(true);
       await usersApi.deactivate();
-      toast.success('Account deactivated. Goodbye for now!');
+      toast.success(t('settings.danger.deactivateSuccess') || 'Account deactivated.');
       await signOut();
     } catch (err) {
       toast.error(err.message || 'Failed to deactivate account');
@@ -226,7 +212,7 @@ const Settings = () => {
     try {
       setDangerLoading(true);
       await usersApi.deleteAccount();
-      toast.success('Account permanently deleted.');
+      toast.success(t('settings.danger.deleteSuccess') || 'Account permanently deleted.');
       await signOut();
     } catch (err) {
       toast.error(err.message || 'Failed to delete account');
@@ -236,33 +222,37 @@ const Settings = () => {
   };
 
   const tabs = [
-    { key: 'general', label: 'General', icon: User },
-    { key: 'privacy', label: 'Privacy', icon: Shield },
-    { key: 'appearance', label: 'Appearance', icon: Palette },
-    { key: 'notifications', label: 'Notifications', icon: Bell },
-    { key: 'danger', label: 'Danger Zone', icon: AlertTriangle, danger: true },
+    { key: 'general', label: t('settings.tabs.general') || 'General', icon: User },
+    { key: 'privacy', label: t('settings.tabs.privacy') || 'Privacy', icon: Shield },
+    { key: 'appearance', label: t('settings.tabs.appearance') || 'Appearance', icon: Palette },
+    { key: 'notifications', label: t('settings.tabs.notifications') || 'Notifications', icon: Bell },
+    { key: 'danger', label: t('settings.tabs.danger') || 'Danger Zone', icon: AlertTriangle, danger: true },
   ];
 
   if (userLoading && !currentUser) {
-    return <Loading />;
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-app-page text-app">
+        <Loading />
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8 bg-app-page text-app min-h-full pb-32">
       {/* Header */}
       <div className="flex flex-col items-center mb-8 text-center">
-        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-purple-500/20 to-indigo-500/20 border border-purple-500/30 mb-3 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-linear-to-tr from-amber-500/20 via-purple-500/20 to-indigo-500/20 border border-app mb-3 shadow-app-glow">
           <Zap className="w-7 h-7 text-amber-400 animate-pulse" />
         </div>
         <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-purple-300 to-indigo-300">
-          Settings
+          {t('settings.title') || 'Settings'}
         </h1>
-        <p className="text-gray-400 text-sm mt-1">
-          Customize your experience, privacy, and preferences
+        <p className="text-app-muted text-sm mt-1">
+          {t('settings.subtitle') || 'Customize your experience, privacy, and preferences'}
         </p>
 
-        {/* Pill Tabs */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mt-6 p-1.5 bg-[#182034]/80 backdrop-blur border border-purple-500/20 rounded-2xl shadow-inner">
+        {/* Pill Tabs: Grid 2-cols on Mobile, Flex on md+ */}
+        <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:justify-center mt-6 p-1.5 bg-app-card backdrop-blur border border-app rounded-2xl shadow-inner w-full max-w-2xl">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -271,18 +261,20 @@ const Settings = () => {
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 cursor-pointer h-11 ${
+                  tab.key === 'danger' ? 'col-span-2 md:col-span-1' : ''
+                } ${
                   isActive
                     ? tab.danger
-                      ? 'bg-gradient-to-r from-red-600 to-rose-700 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]'
-                      : 'bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                      ? 'bg-linear-to-r from-red-600 to-rose-700 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+                      : 'bg-linear-to-r from-indigo-500 via-purple-600 to-pink-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
                     : tab.danger
                     ? 'text-rose-400 hover:bg-rose-500/10'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    : 'text-app-muted hover:text-app hover:bg-white/5'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="truncate">{tab.label}</span>
               </button>
             );
           })}
@@ -290,22 +282,22 @@ const Settings = () => {
       </div>
 
       {/* Main Settings Card */}
-      <div className="bg-[#182034]/90 backdrop-blur border border-purple-500/20 rounded-3xl p-6 md:p-8 shadow-[0_0_25px_rgba(131,58,180,0.3)]">
+      <div className="bg-app-card backdrop-blur border border-app rounded-3xl p-6 md:p-8 shadow-app-glow">
         {/* TAB 1: GENERAL */}
         {activeTab === 'general' && (
           <form onSubmit={handleSaveGeneral} className="space-y-6">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-xl font-bold text-app flex items-center gap-2">
               <User className="w-5 h-5 text-purple-400" />
-              General Profile Information
+              {t('settings.general.title') || 'General Profile Information'}
             </h2>
-            <p className="text-sm text-gray-400 -mt-3">
-              Update your public display identity across FlowNet
+            <p className="text-sm text-app-muted -mt-3">
+              {t('settings.general.subtitle') || 'Update your public display identity across FlowNet'}
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                  Full Name
+                <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">
+                  {t('settings.general.fullName') || 'Full Name'}
                 </label>
                 <input
                   type="text"
@@ -314,14 +306,14 @@ const Settings = () => {
                     setGeneralForm({ ...generalForm, full_name: e.target.value })
                   }
                   required
-                  placeholder="Your full name"
-                  className="w-full px-4 py-3 bg-[#0e1428] border border-purple-500/30 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                  placeholder={t('settings.general.fullName') || 'Your full name'}
+                  className="w-full px-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                  Username
+                <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">
+                  {t('settings.general.username') || 'Username'}
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-3 text-purple-400 font-medium">@</span>
@@ -336,41 +328,41 @@ const Settings = () => {
                     }
                     required
                     placeholder="username"
-                    className="w-full pl-9 pr-4 py-3 bg-[#0e1428] border border-purple-500/30 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                    className="w-full pl-9 pr-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                  Short Bio
+                <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">
+                  {t('settings.general.bio') || 'Short Bio'}
                 </label>
                 <textarea
                   value={generalForm.bio}
                   onChange={(e) => setGeneralForm({ ...generalForm, bio: e.target.value })}
                   rows={3}
                   maxLength={500}
-                  placeholder="Share a short bio about yourself..."
-                  className="w-full px-4 py-3 bg-[#0e1428] border border-purple-500/30 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"
+                  placeholder={t('profile.bioPlaceholder') || 'Share a short bio about yourself...'}
+                  className="w-full px-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition resize-none"
                 />
-                <span className="text-xs text-gray-400 text-right block mt-1">
+                <span className="text-xs text-app-muted text-right block mt-1">
                   {generalForm.bio.length} / 500
                 </span>
               </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-purple-500/20">
+            <div className="flex justify-end pt-4 border-t border-app">
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl font-semibold bg-linear-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
               >
                 {saving ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <Check className="w-4 h-4" />
                 )}
-                Save Changes
+                {t('common.save') || 'Save Changes'}
               </button>
             </div>
           </form>
@@ -380,26 +372,29 @@ const Settings = () => {
         {activeTab === 'privacy' && (
           <div className="space-y-8">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-1">
+              <h2 className="text-xl font-bold text-app flex items-center gap-2 mb-1">
                 <Shield className="w-5 h-5 text-purple-400" />
-                Privacy & Safety
+                {t('settings.privacy.title') || 'Privacy & Safety'}
               </h2>
-              <p className="text-sm text-gray-400">
-                Control who can view your posts, reach you, and see your location
+              <p className="text-sm text-app-muted">
+                {t('settings.privacy.subtitle') || 'Control who can view your posts, reach you, and see your location'}
               </p>
             </div>
 
             <div className="space-y-5">
               {/* Private account toggle */}
-              <div className="flex items-center justify-between p-4 bg-[#0e1428]/60 border border-purple-500/20 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-white/5 border border-app rounded-2xl">
                 <div className="flex items-start gap-3">
                   <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
                     <Lock className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-sm">Private Account</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Only followers and approved connections can see your posts and media.
+                    <h3 className="font-semibold text-app text-sm">
+                      {t('settings.privacy.privateAccount') || 'Private Account'}
+                    </h3>
+                    <p className="text-xs text-app-muted mt-0.5">
+                      {t('settings.privacy.privateAccountDesc') ||
+                        'Only followers and approved connections can see your posts and media.'}
                     </p>
                   </div>
                 </div>
@@ -412,7 +407,7 @@ const Settings = () => {
                     })
                   }
                   className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
-                    privacyForm.is_private_account ? 'bg-purple-600' : 'bg-gray-700'
+                    privacyForm.is_private_account ? 'bg-purple-600' : 'bg-gray-600'
                   }`}
                 >
                   <span
@@ -424,15 +419,18 @@ const Settings = () => {
               </div>
 
               {/* Show location toggle */}
-              <div className="flex items-center justify-between p-4 bg-[#0e1428]/60 border border-purple-500/20 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-white/5 border border-app rounded-2xl">
                 <div className="flex items-start gap-3">
                   <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-sm">Show Location</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Display your location publicly on your profile card and search results.
+                    <h3 className="font-semibold text-app text-sm">
+                      {t('settings.privacy.showLocation') || 'Show Location'}
+                    </h3>
+                    <p className="text-xs text-app-muted mt-0.5">
+                      {t('settings.privacy.showLocationDesc') ||
+                        'Display your location publicly on your profile card and search results.'}
                     </p>
                   </div>
                 </div>
@@ -445,7 +443,7 @@ const Settings = () => {
                     })
                   }
                   className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
-                    privacyForm.show_location ? 'bg-purple-600' : 'bg-gray-700'
+                    privacyForm.show_location ? 'bg-purple-600' : 'bg-gray-600'
                   }`}
                 >
                   <span
@@ -457,15 +455,18 @@ const Settings = () => {
               </div>
 
               {/* Who can message */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#0e1428]/60 border border-purple-500/20 rounded-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white/5 border border-app rounded-2xl">
                 <div className="flex items-start gap-3">
                   <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
                     <MessageSquare className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-sm">Who Can Message You</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Restrict incoming direct messages to your accepted connections.
+                    <h3 className="font-semibold text-app text-sm">
+                      {t('settings.privacy.whoCanMessage') || 'Who Can Message You'}
+                    </h3>
+                    <p className="text-xs text-app-muted mt-0.5">
+                      {t('settings.privacy.whoCanMessageDesc') ||
+                        'Restrict incoming direct messages to your accepted connections.'}
                     </p>
                   </div>
                 </div>
@@ -474,33 +475,36 @@ const Settings = () => {
                   onChange={(e) =>
                     setPrivacyForm({ ...privacyForm, who_can_message: e.target.value })
                   }
-                  className="px-4 py-2 bg-[#182034] border border-purple-500/30 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                  className="px-4 py-2 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
                 >
-                  <option value="everyone">Everyone</option>
-                  <option value="connections">Connections Only</option>
+                  <option value="everyone">{t('settings.privacy.everyone') || 'Everyone'}</option>
+                  <option value="connections">
+                    {t('settings.privacy.connectionsOnly') || 'Connections Only'}
+                  </option>
                 </select>
               </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-purple-500/20">
+            <div className="flex justify-end pt-4 border-t border-app">
               <button
                 type="button"
                 onClick={handleSavePrivacy}
                 disabled={saving}
-                className="px-6 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="px-6 py-2.5 rounded-xl font-semibold bg-linear-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-50 cursor-pointer"
               >
-                Save Privacy Settings
+                {t('settings.privacy.saveButton') || 'Save Privacy Settings'}
               </button>
             </div>
 
             {/* Blocked Users Section */}
-            <div className="pt-6 border-t border-purple-500/20">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-3">
+            <div className="pt-6 border-t border-app">
+              <h3 className="text-lg font-bold text-app flex items-center gap-2 mb-3">
                 <UserX className="w-5 h-5 text-rose-400" />
-                Blocked Accounts
+                {t('settings.privacy.blockedTitle') || 'Blocked Accounts'}
               </h3>
-              <p className="text-xs text-gray-400 mb-4">
-                Blocked users cannot message you, see your posts, or interact with your profile.
+              <p className="text-xs text-app-muted mb-4">
+                {t('settings.privacy.blockedDesc') ||
+                  'Blocked users cannot message you, see your posts, or interact with your profile.'}
               </p>
 
               {loadingBlocked ? (
@@ -508,21 +512,21 @@ const Settings = () => {
                   <div className="w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : blockedUsers.length === 0 ? (
-                <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10 text-center text-sm text-gray-400">
-                  You have not blocked any users.
+                <div className="p-4 rounded-xl bg-purple-500/5 border border-app text-center text-sm text-app-muted">
+                  {t('settings.privacy.noBlocked') || 'You have not blocked any users.'}
                 </div>
               ) : (
                 <div className="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar">
                   {blockedUsers.map((u) => (
                     <div
                       key={u._id}
-                      className="flex items-center justify-between p-3 bg-[#0e1428]/80 border border-purple-500/20 rounded-xl"
+                      className="flex items-center justify-between p-3 bg-white/5 border border-app rounded-xl"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar src={u.profile_picture} name={u.full_name} size="sm" />
                         <div>
-                          <div className="font-semibold text-white text-sm">{u.full_name}</div>
-                          <div className="text-xs text-gray-400">@{u.username}</div>
+                          <div className="font-semibold text-app text-sm">{u.full_name}</div>
+                          <div className="text-xs text-app-muted">@{u.username}</div>
                         </div>
                       </div>
                       <button
@@ -531,7 +535,7 @@ const Settings = () => {
                         disabled={unblockingId === u._id}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 transition cursor-pointer"
                       >
-                        {unblockingId === u._id ? 'Unblocking...' : 'Unblock'}
+                        {unblockingId === u._id ? 'Unblocking...' : (t('settings.privacy.unblock') || 'Unblock')}
                       </button>
                     </div>
                   ))}
@@ -543,118 +547,200 @@ const Settings = () => {
 
         {/* TAB 3: APPEARANCE */}
         {activeTab === 'appearance' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-1">
+              <h2 className="text-xl font-bold text-app flex items-center gap-2 mb-1">
                 <Palette className="w-5 h-5 text-purple-400" />
-                Appearance & Customization
+                {t('settings.appearance.title') || 'Appearance & Customization'}
               </h2>
-              <p className="text-sm text-gray-400">
-                Personalize how FlowNet looks and feels on your devices
+              <p className="text-sm text-app-muted">
+                {t('settings.appearance.subtitle') ||
+                  'Personalize how FlowNet looks and feels on your devices'}
               </p>
             </div>
 
-            <div className="space-y-6">
-              {/* Theme Selection */}
+            <div className="space-y-7">
+              {/* SECTION 1: Color Palette */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">
-                  Color Theme
+                <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-3">
+                  {t('settings.appearance.paletteTitle') || 'Color Palette'}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Cosmic Galaxy */}
                   <div
-                    onClick={() => setAppearanceForm({ ...appearanceForm, theme: 'cosmic' })}
+                    onClick={() => handleSelectPalette('cosmic')}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
-                      appearanceForm.theme === 'cosmic'
-                        ? 'bg-gradient-to-br from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-[1.02]'
-                        : 'bg-[#0e1428] border-purple-500/20 hover:border-purple-500/40 opacity-70'
+                      palette === 'cosmic'
+                        ? 'bg-linear-to-br from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)] scale-[1.02]'
+                        : 'bg-white/5 border-app hover:border-purple-400/50 opacity-80'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-white text-sm">🌌 Cosmic Galaxy</span>
-                      {appearanceForm.theme === 'cosmic' && (
+                      <span className="font-bold text-sm">
+                        {t('settings.appearance.cosmicTitle') || '🌌 Cosmic Galaxy'}
+                      </span>
+                      {palette === 'cosmic' && (
+                        <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center shrink-0">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs opacity-85 leading-relaxed">
+                      {t('settings.appearance.cosmicDesc') ||
+                        'Signature deep space gradient with violet glows and starlight ambiance.'}
+                    </p>
+                  </div>
+
+                  {/* Midnight Stealth */}
+                  <div
+                    onClick={() => handleSelectPalette('midnight')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                      palette === 'midnight'
+                        ? 'bg-linear-to-br from-[#0b1120] via-[#111827] to-[#1e293b] text-white border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.5)] scale-[1.02]'
+                        : 'bg-white/5 border-app hover:border-indigo-400/50 opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-sm">
+                        {t('settings.appearance.midnightTitle') || '🌑 Midnight Stealth'}
+                      </span>
+                      {palette === 'midnight' && (
+                        <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs opacity-85 leading-relaxed">
+                      {t('settings.appearance.midnightDesc') ||
+                        'Dark obsidian palette with subdued contrast for nighttime focus.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: Display Mode (Light / Dark / System) */}
+              <div>
+                <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-3">
+                  {t('settings.appearance.modeTitle') || 'Display Mode'}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Light */}
+                  <div
+                    onClick={() => handleSelectMode('light')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between ${
+                      mode === 'light'
+                        ? 'bg-white text-slate-900 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-[1.02]'
+                        : 'bg-white/5 border-app hover:border-purple-400/40 opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Sun className="w-5 h-5 text-amber-500" />
+                      <span className="font-semibold text-sm">
+                        {t('settings.appearance.modeLight') || 'Light'}
+                      </span>
+                    </div>
+                    {mode === 'light' && (
+                      <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dark */}
+                  <div
+                    onClick={() => handleSelectMode('dark')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between ${
+                      mode === 'dark'
+                        ? 'bg-purple-950/60 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-[1.02]'
+                        : 'bg-white/5 border-app hover:border-purple-400/40 opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Moon className="w-5 h-5 text-indigo-400" />
+                      <span className="font-semibold text-sm">
+                        {t('settings.appearance.modeDark') || 'Dark'}
+                      </span>
+                    </div>
+                    {mode === 'dark' && (
+                      <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* System */}
+                  <div
+                    onClick={() => handleSelectMode('system')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between ${
+                      mode === 'system'
+                        ? 'bg-purple-950/60 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-[1.02]'
+                        : 'bg-white/5 border-app hover:border-purple-400/40 opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Monitor className="w-5 h-5 text-teal-400" />
+                      <span className="font-semibold text-sm">
+                        {t('settings.appearance.modeSystem') || 'System'}
+                      </span>
+                    </div>
+                    {mode === 'system' && (
+                      <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: Interface Language */}
+              <div>
+                <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-3">
+                  {t('settings.appearance.langTitle') || 'Interface Language'}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* English */}
+                  <div
+                    onClick={() => handleSelectLanguage('en')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                      lang === 'en'
+                        ? 'bg-white/10 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-[1.02]'
+                        : 'bg-white/5 border-app hover:border-purple-400/40 opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-sm">
+                        {t('settings.appearance.langEn') || '🇺🇸 English (Default)'}
+                      </span>
+                      {lang === 'en' && (
                         <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
                           <Check className="w-3 h-3 text-white" />
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-300">
-                      Signature deep space gradient with violet glows and starlight ambiance.
-                    </p>
                   </div>
 
+                  {/* Arabic */}
                   <div
-                    onClick={() => setAppearanceForm({ ...appearanceForm, theme: 'midnight' })}
+                    onClick={() => handleSelectLanguage('ar')}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
-                      appearanceForm.theme === 'midnight'
-                        ? 'bg-gradient-to-br from-[#0a0c16] via-[#11162b] to-[#182034] border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.4)] scale-[1.02]'
-                        : 'bg-[#0e1428] border-purple-500/20 hover:border-purple-500/40 opacity-70'
+                      lang === 'ar'
+                        ? 'bg-white/10 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-[1.02]'
+                        : 'bg-white/5 border-app hover:border-purple-400/40 opacity-80'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-white text-sm">🌑 Midnight Stealth</span>
-                      {appearanceForm.theme === 'midnight' && (
-                        <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-sm">
+                        {t('settings.appearance.langAr') || '🇸🇦 العربية (Arabic)'}
+                      </span>
+                      {lang === 'ar' && (
+                        <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
                           <Check className="w-3 h-3 text-white" />
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-300">
-                      Dark obsidian palette with subdued contrast for nighttime focus.
-                    </p>
                   </div>
                 </div>
               </div>
-
-              {/* Language Selection */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">
-                  Interface Language
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div
-                    onClick={() => setAppearanceForm({ ...appearanceForm, language: 'en' })}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
-                      appearanceForm.language === 'en'
-                        ? 'bg-[#182034] border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                        : 'bg-[#0e1428] border-purple-500/20 hover:border-purple-500/40 opacity-70'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white text-sm">🇺🇸 English (Default)</span>
-                      {appearanceForm.language === 'en' && (
-                        <Check className="w-4 h-4 text-purple-400" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setAppearanceForm({ ...appearanceForm, language: 'ar' })}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
-                      appearanceForm.language === 'ar'
-                        ? 'bg-[#182034] border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                        : 'bg-[#0e1428] border-purple-500/20 hover:border-purple-500/40 opacity-70'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white text-sm">🇸🇦 العربية (Arabic)</span>
-                      {appearanceForm.language === 'ar' && (
-                        <Check className="w-4 h-4 text-purple-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-purple-500/20">
-              <button
-                type="button"
-                onClick={handleSaveAppearance}
-                disabled={saving}
-                className="px-6 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                Save Preferences
-              </button>
             </div>
           </div>
         )}
@@ -663,30 +749,51 @@ const Settings = () => {
         {activeTab === 'notifications' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-1">
+              <h2 className="text-xl font-bold text-app flex items-center gap-2 mb-1">
                 <Bell className="w-5 h-5 text-purple-400" />
-                Notification Preferences
+                {t('settings.notificationsTab.title') || 'Notification Preferences'}
               </h2>
-              <p className="text-sm text-gray-400">
-                Choose what alerts and activities ping you in real time
+              <p className="text-sm text-app-muted">
+                {t('settings.notificationsTab.subtitle') ||
+                  'Choose what alerts and activities ping you in real time'}
               </p>
             </div>
 
             <div className="space-y-4">
               {[
-                { key: 'likes', label: 'Likes & Reactions', desc: 'Notify when someone likes your post or media' },
-                { key: 'comments', label: 'Comments', desc: 'Notify when someone comments on your post' },
-                { key: 'follows', label: 'New Followers', desc: 'Notify when someone begins following your journey' },
-                { key: 'messages', label: 'Direct Messages', desc: 'Notify when you receive private 1:1 messages' },
-                { key: 'requests', label: 'Connection Requests', desc: 'Notify when someone invites you to connect' },
+                {
+                  key: 'likes',
+                  label: t('settings.notificationsTab.likes') || 'Likes & Reactions',
+                  desc: t('settings.notificationsTab.likesDesc') || 'Notify when someone likes your post or media',
+                },
+                {
+                  key: 'comments',
+                  label: t('settings.notificationsTab.comments') || 'Comments',
+                  desc: t('settings.notificationsTab.commentsDesc') || 'Notify when someone comments on your post',
+                },
+                {
+                  key: 'follows',
+                  label: t('settings.notificationsTab.follows') || 'New Followers',
+                  desc: t('settings.notificationsTab.followsDesc') || 'Notify when someone begins following your journey',
+                },
+                {
+                  key: 'messages',
+                  label: t('settings.notificationsTab.messages') || 'Direct Messages',
+                  desc: t('settings.notificationsTab.messagesDesc') || 'Notify when you receive private 1:1 messages',
+                },
+                {
+                  key: 'requests',
+                  label: t('settings.notificationsTab.requests') || 'Connection Requests',
+                  desc: t('settings.notificationsTab.requestsDesc') || 'Notify when someone invites you to connect',
+                },
               ].map((item) => (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between p-4 bg-[#0e1428]/60 border border-purple-500/20 rounded-2xl"
+                  className="flex items-center justify-between p-4 bg-white/5 border border-app rounded-2xl"
                 >
                   <div>
-                    <h3 className="font-semibold text-white text-sm">{item.label}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                    <h3 className="font-semibold text-app text-sm">{item.label}</h3>
+                    <p className="text-xs text-app-muted mt-0.5">{item.desc}</p>
                   </div>
                   <button
                     type="button"
@@ -697,7 +804,7 @@ const Settings = () => {
                       })
                     }
                     className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
-                      notificationsForm[item.key] ? 'bg-purple-600' : 'bg-gray-700'
+                      notificationsForm[item.key] ? 'bg-purple-600' : 'bg-gray-600'
                     }`}
                   >
                     <span
@@ -710,14 +817,14 @@ const Settings = () => {
               ))}
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-purple-500/20">
+            <div className="flex justify-end pt-4 border-t border-app">
               <button
                 type="button"
                 onClick={handleSaveNotifications}
                 disabled={saving}
-                className="px-6 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="px-6 py-2.5 rounded-xl font-semibold bg-linear-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-50 cursor-pointer"
               >
-                Save Preferences
+                {t('settings.notificationsTab.saveButton') || 'Save Preferences'}
               </button>
             </div>
           </div>
@@ -729,10 +836,11 @@ const Settings = () => {
             <div>
               <h2 className="text-xl font-bold text-rose-400 flex items-center gap-2 mb-1">
                 <AlertTriangle className="w-5 h-5 text-rose-500" />
-                Danger Zone
+                {t('settings.danger.title') || 'Danger Zone'}
               </h2>
-              <p className="text-sm text-gray-400">
-                Irreversible actions regarding your FlowNet account and personal data
+              <p className="text-sm text-app-muted">
+                {t('settings.danger.subtitle') ||
+                  'Irreversible actions regarding your FlowNet account and personal data'}
               </p>
             </div>
 
@@ -740,12 +848,13 @@ const Settings = () => {
               {/* Deactivate Option */}
               <div className="p-5 border border-amber-500/30 bg-amber-500/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
+                  <h3 className="font-bold text-app text-base flex items-center gap-2">
                     <PowerOff className="w-4 h-4 text-amber-400" />
-                    Deactivate Account
+                    {t('settings.danger.deactivateTitle') || 'Deactivate Account'}
                   </h3>
-                  <p className="text-xs text-gray-300 mt-1">
-                    Temporarily hide your profile, posts, and comments from feeds and searches. You can reactivate anytime.
+                  <p className="text-xs text-app-muted mt-1">
+                    {t('settings.danger.deactivateDesc') ||
+                      'Temporarily hide your profile, posts, and comments from feeds and searches. You can reactivate anytime.'}
                   </p>
                 </div>
                 <button
@@ -753,27 +862,28 @@ const Settings = () => {
                   onClick={() => setDeactivateModalOpen(true)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition shrink-0 cursor-pointer"
                 >
-                  Deactivate Account
+                  {t('settings.danger.deactivateTitle') || 'Deactivate Account'}
                 </button>
               </div>
 
               {/* Permanent Deletion Option */}
               <div className="p-5 border border-rose-500/40 bg-rose-500/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-rose-300 text-base flex items-center gap-2">
+                  <h3 className="font-bold text-rose-400 text-base flex items-center gap-2">
                     <Trash2 className="w-4 h-4 text-rose-400" />
-                    Permanently Delete Account
+                    {t('settings.danger.deleteTitle') || 'Permanently Delete Account'}
                   </h3>
-                  <p className="text-xs text-gray-300 mt-1">
-                    Permanently delete your profile, posts, comments, stories, messages, and connections. This cannot be undone.
+                  <p className="text-xs text-app-muted mt-1">
+                    {t('settings.danger.deleteDesc') ||
+                      'Permanently delete your profile, posts, comments, stories, messages, and connections. This cannot be undone.'}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDeleteModalOpen(true)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white shadow-lg shadow-rose-950/50 transition shrink-0 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-linear-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white shadow-lg shadow-rose-950/50 transition shrink-0 cursor-pointer"
                 >
-                  Delete Account
+                  {t('settings.danger.deleteTitle') || 'Delete Account'}
                 </button>
               </div>
             </div>
@@ -786,9 +896,12 @@ const Settings = () => {
         isOpen={deactivateModalOpen}
         onClose={() => setDeactivateModalOpen(false)}
         onConfirm={handleDeactivate}
-        title="Deactivate Account"
-        message="Are you sure you want to deactivate your account? Your profile and content will be hidden until you log back in."
-        confirmText="Deactivate"
+        title={t('settings.danger.deactivateTitle') || 'Deactivate Account'}
+        message={
+          t('settings.danger.deactivateConfirm') ||
+          'Are you sure you want to deactivate your account? Your profile and content will be hidden until you log back in.'
+        }
+        confirmText={t('common.confirm') || 'Deactivate'}
         danger={true}
         isLoading={dangerLoading}
       />
@@ -798,9 +911,12 @@ const Settings = () => {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteAccount}
-        title="Permanently Delete Account"
-        message="This action is PERMANENT. All your posts, photos, messages, network connections, and account data will be completely wiped."
-        confirmText="Permanently Delete"
+        title={t('settings.danger.deleteTitle') || 'Permanently Delete Account'}
+        message={
+          t('settings.danger.deleteConfirm') ||
+          'This action is PERMANENT. All your posts, photos, messages, network connections, and account data will be completely wiped.'
+        }
+        confirmText={t('common.delete') || 'Permanently Delete'}
         danger={true}
         isLoading={dangerLoading}
         requireInputText="DELETE"

@@ -4,11 +4,13 @@ import { Users, LogIn, Crown, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { groupsApi } from '../../api/axios';
 import { getGroupIcon } from '../../utils/groupIcons';
+import { useLanguage } from '../../context/LanguageContext';
 import Loading from '../../components/Loading';
 import EmptyState from '../../components/EmptyState';
 
 const GroupsJoined = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,23 +22,24 @@ const GroupsJoined = () => {
         setGroups(res || []);
       } catch (err) {
         console.warn('Failed to load joined groups:', err);
-        toast.error('تعذر تحميل مجموعاتك');
+        toast.error(t('groups.loadJoinedFailed') || 'Could not load your groups');
       } finally {
         setLoading(false);
       }
     };
     fetchJoined();
-  }, []);
+  }, [t]);
 
   return (
-    <div dir="rtl" className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 bg-app-page text-app min-h-full pb-32">
       {/* Header */}
       <div className="flex flex-col items-center mb-10 text-center">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300 tracking-wide mb-2">
-          ⚡ مجموعاتي ⚡
+          ⚡ {t('groups.myGroupsTitle') || 'My Groups'} ⚡
         </h1>
-        <p className="text-gray-300 text-sm max-w-md">
-          المجموعات التي تشارك فيها، يمكنك الدخول والتفاعل مع الأعضاء فوراً
+        <p className="text-app-muted text-sm max-w-md">
+          {t('groups.myGroupsSubtitle') ||
+            'Communities you are part of, dive in and interact with fellow members'}
         </p>
       </div>
 
@@ -45,10 +48,13 @@ const GroupsJoined = () => {
         <Loading />
       ) : groups.length === 0 ? (
         <EmptyState
-          title="لم تنضم بعد لأي مجموعة أو لم يتم قبول طلبك."
-          description="استكشف المجموعات المتاحة وقدم طلب انضمام لتظهر هنا بمجرد قبولك."
+          title={t('groups.emptyJoinedTitle') || "You haven't joined any groups yet."}
+          description={
+            t('groups.emptyJoinedDesc') ||
+            'Explore available groups and send a join request to see them here.'
+          }
           icon={Users}
-          actionText="استعراض المجموعات المتاحة"
+          actionText={t('groups.browseAvailable') || 'Browse Available Groups'}
           onAction={() => navigate('/groups')}
         />
       ) : (
@@ -56,7 +62,7 @@ const GroupsJoined = () => {
           {groups.map((group) => (
             <div
               key={group._id}
-              className="group relative bg-[#182034]/90 backdrop-blur border border-purple-500/20 hover:border-purple-500/40 rounded-3xl p-6 shadow-[0_0_20px_rgba(131,58,180,0.2)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+              className="group relative bg-app-card backdrop-blur border border-app hover:border-purple-400/50 rounded-3xl p-6 shadow-app-glow transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
             >
               <div>
                 {/* Top Icon & Role Badge */}
@@ -68,38 +74,39 @@ const GroupsJoined = () => {
                   <div className="flex items-center gap-2">
                     {group.is_owner ? (
                       <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-medium">
-                        <Crown className="w-3 h-3" /> مالك
+                        <Crown className="w-3 h-3" /> {t('groups.owner') || 'Owner'}
                       </span>
                     ) : group.is_admin ? (
                       <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-medium">
-                        <Shield className="w-3 h-3" /> مشرف
+                        <Shield className="w-3 h-3" /> {t('groups.admin') || 'Admin'}
                       </span>
                     ) : null}
 
-                    <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 font-medium">
-                      {group.members_count || 0} أعضاء
+                    <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-app text-purple-300 font-medium">
+                      {group.members_count || 0} {t('groups.members') || 'members'}
                     </div>
                   </div>
                 </div>
 
                 {/* Group Name & Description */}
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-pink-300 transition-colors">
+                <h3 className="text-xl font-bold text-app mb-2 group-hover:text-pink-300 transition-colors">
                   {group.name}
                 </h3>
-                <p className="text-xs text-gray-400 line-clamp-3 mb-6 leading-relaxed">
-                  {group.description || 'مجموعة تفاعلية رائعة تجمع الأعضاء على فلونت.'}
+                <p className="text-xs text-app-muted line-clamp-3 mb-6 leading-relaxed">
+                  {group.description ||
+                    'A wonderful collaborative group on FlowNet.'}
                 </p>
               </div>
 
               {/* Action Button: Blue to purple */}
-              <div className="pt-4 border-t border-purple-500/10">
+              <div className="pt-4 border-t border-app">
                 <button
                   type="button"
                   onClick={() => navigate(`/groups/${group._id}`)}
-                  className="w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 active:scale-95 shadow-md bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-indigo-950/50"
+                  className="w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 active:scale-95 shadow-md bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-indigo-950/50"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span>دخول المجموعة 🚀</span>
+                  <span>{t('groups.enterGroup') || 'Enter Group 🚀'}</span>
                 </button>
               </div>
             </div>

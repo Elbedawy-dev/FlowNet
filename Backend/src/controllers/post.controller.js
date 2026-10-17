@@ -2,16 +2,22 @@ import { z } from 'zod';
 import { Post } from '../models/Post.js';
 import { Comment } from '../models/Comment.js';
 import { User } from '../models/User.js';
+import { Notification } from '../models/Notification.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getBlockedUserIds, getBlockStatus, isBlockedEitherWay } from '../utils/blockUtils.js';
 import { sanitizeText } from '../utils/sanitize.js';
-import { uploadFromBuffer, deleteResource } from '../config/cloudinary.js';
+import { uploadFromBuffer, deleteResource, extractPublicId } from '../config/cloudinary.js';
 import { parseCursorPagination, buildCursorResult } from '../utils/pagination.js';
 import { createNotification } from './notification.controller.js';
 
 export const createPostSchema = z.object({
   content: z.string().max(2000).optional(),
+});
+
+export const updatePostSchema = z.object({
+  content: z.string().max(2000).optional(),
+  remove_image_urls: z.union([z.array(z.string()), z.string()]).optional(),
 });
 
 export const createCommentSchema = z.object({
@@ -228,8 +234,103 @@ export const getPostById = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/posts/:id
+ * Update post (Owner only)
+ */
+export const updatePost = asyncHandler(async (req, res) => {
+  const currentUserId = req.userId;
+  const post = await Post.findById(req.params.id);
+
+  if (!post) {
+    throw ApiError.notFound('Post not found');
+  }
+
+  if (post.user.toString() !== currentUserId) {
+    throw ApiError.forbidden('You can only edit your own posts');
+  }
+
+  // Handle image removals
+  let removeUrls = req.body.remove_image_urls;
+  if (typeof removeUrls === 'string') {
+    try {
+      removeUrls = JSON.parse(removeUrls);
+    } catch {
+      removeUrls = [removeUrls];
+    }
+  }
+  const removeSet = new Set(Array.isArray(removeUrls) ? removeUrls : []);
+
+  const remainingImages = (post.image_urls || []).filter((url) => {
+    if (removeSet.has(url)) {
+      const publicId = extractPublicId(url);
+      if (publicId) deleteResource(publicId, 'image').catch(() => {});
+      return false;
+    }
+    return true;
+  });
+
+  // Handle newly uploaded images (max 4 total across remaining + new)
+  const newImageUrls = [];
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+    const availableSlots = Math.max(0, 4 - remainingImages.length);
+    const filesToUpload = req.files.slice(0, availableSlots);
+
+    const uploadPromises = filesToUpload.map((file) =>
+      uploadFromBuffer(file.buffer, { folder: 'flownet/posts' }).catch((err) => {
+        console.warn('[Post Update Upload] Failed to upload image to Cloudinary:', err.message);
+        return null;
+      })
+    );
+
+    const results = await Promise.all(uploadPromises);
+    for (const r of results) {
+      if (r?.url) {
+        newImageUrls.push(r.url);
+      }
+    }
+  }
+
+  const finalImageUrls = [...remainingImages, ...newImageUrls];
+
+  // Sanitize content
+  const rawContent = req.body.content !== undefined ? req.body.content : post.content;
+  const sanitizedContent = sanitizeText(rawContent);
+
+  if (!sanitizedContent && finalImageUrls.length === 0) {
+    throw ApiError.badRequest('A post must contain text content or at least one image', 'EMPTY_POST');
+  }
+
+  let postType = 'text';
+  if (sanitizedContent && finalImageUrls.length > 0) {
+    postType = 'text_with_image';
+  } else if (finalImageUrls.length > 0) {
+    postType = 'image';
+  }
+
+  post.content = sanitizedContent;
+  post.image_urls = finalImageUrls;
+  post.post_type = postType;
+  post.edited = true;
+  await post.save();
+
+  const populatedPost = await Post.findById(post._id)
+    .populate('user', '_id full_name username profile_picture is_verified')
+    .lean();
+
+  const commentsCount = await Comment.countDocuments({ post: post._id });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      ...populatedPost,
+      comments_count: commentsCount,
+    },
+  });
+});
+
+/**
  * DELETE /api/posts/:id
- * Delete post (Owner only)
+ * Delete post (Owner only) with cascade
  */
 export const deletePost = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
@@ -243,10 +344,21 @@ export const deletePost = asyncHandler(async (req, res) => {
     throw ApiError.forbidden('You can only delete your own posts');
   }
 
-  // Delete all comments on this post
+  // 1. Delete all comments on this post
   await Comment.deleteMany({ post: post._id });
 
-  // Delete the post document
+  // 2. Delete all notifications referencing this post
+  await Notification.deleteMany({ post: post._id });
+
+  // 3. Delete all Cloudinary assets
+  if (Array.isArray(post.image_urls) && post.image_urls.length > 0) {
+    for (const url of post.image_urls) {
+      const publicId = extractPublicId(url);
+      if (publicId) await deleteResource(publicId, 'image');
+    }
+  }
+
+  // 4. Delete the post document
   await Post.findByIdAndDelete(post._id);
 
   res.status(200).json({

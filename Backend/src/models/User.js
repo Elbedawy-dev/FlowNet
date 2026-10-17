@@ -92,10 +92,15 @@ const userSchema = new mongoose.Schema(
           enum: ['cosmic', 'midnight'],
           default: 'cosmic',
         },
+        mode: {
+          type: String,
+          enum: ['light', 'dark', 'system'],
+          default: 'dark',
+        },
         language: {
           type: String,
           enum: ['ar', 'en'],
-          default: 'ar',
+          default: 'en',
         },
       },
       notifications: {

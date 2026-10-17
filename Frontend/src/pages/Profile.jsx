@@ -19,6 +19,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import { usersApi, connectionsApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
+import { useLanguage } from "../context/LanguageContext";
 import PostCard from "../components/PostCard";
 import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
@@ -28,6 +29,7 @@ const Profile = () => {
   const { profileId } = useParams();
   const navigate = useNavigate();
   const { currentUser, refreshUser, setCurrentUser } = useCurrentUser();
+  const { t } = useLanguage();
 
   const isOwnProfile = !profileId || profileId === currentUser?._id;
   const targetId = isOwnProfile ? currentUser?._id : profileId;
@@ -89,6 +91,16 @@ const Profile = () => {
       setPostsLoading(false);
     }
   }, [targetId]);
+
+  const handlePostDeleted = (deletedId) => {
+    setPosts((prev) => prev.filter((p) => p._id !== deletedId));
+  };
+
+  const handlePostUpdated = (updatedPost) => {
+    setPosts((prev) =>
+      prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
+    );
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -252,10 +264,10 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-full py-6 px-4 flex flex-col items-center bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white pb-32">
+    <div className="min-h-full py-6 px-4 flex flex-col items-center bg-app-page text-app pb-32">
       <div className="w-full max-w-4xl">
         {/* Cover Photo Banner */}
-        <div className="relative w-full h-44 sm:h-64 rounded-3xl overflow-hidden border border-purple-500/20 bg-linear-to-r from-indigo-900 via-purple-900 to-pink-900 shadow-[0_0_30px_rgba(131,58,180,0.4)]">
+        <div className="relative w-full h-44 sm:h-64 rounded-3xl overflow-hidden border border-app bg-linear-to-r from-indigo-900 via-purple-900 to-pink-900 shadow-app-glow">
           {profile.cover_photo ? (
             <img
               src={profile.cover_photo}
@@ -270,7 +282,7 @@ const Profile = () => {
         </div>
 
         {/* Profile Card Info Box */}
-        <div className="relative bg-white/5 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-6 sm:p-8 mt-[-3rem] sm:mt-[-4rem] mx-2 sm:mx-4 shadow-[0_0_35px_rgba(131,58,180,0.3)] z-10">
+        <div className="relative bg-app-card backdrop-blur-xl border border-app rounded-3xl p-6 sm:p-8 mt-[-3rem] sm:mt-[-4rem] mx-2 sm:mx-4 shadow-app-glow z-10">
           <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4">
             {/* Avatar overlapping banner */}
             <div className="relative mt-[-4rem] sm:mt-[-5rem]">
@@ -290,7 +302,7 @@ const Profile = () => {
                   onClick={() => setIsEditOpen(true)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-xs font-semibold shadow-[0_0_15px_rgba(168,85,247,0.5)] active:scale-95 transition-all cursor-pointer"
                 >
-                  <Edit3 size={15} /> Edit Profile
+                  <Edit3 size={15} /> {t("profile.editProfile") || "Edit Profile"}
                 </button>
               ) : profile.has_blocked_me ? null : (
                 <>
@@ -306,11 +318,11 @@ const Profile = () => {
                   >
                     {profile.is_following ? (
                       <>
-                        <UserCheck size={15} /> Following
+                        <UserCheck size={15} /> {t("profile.following") || "Following"}
                       </>
                     ) : (
                       <>
-                        <UserPlus size={15} /> Follow
+                        <UserPlus size={15} /> {t("profile.follow") || "Follow"}
                       </>
                     )}
                   </button>
@@ -319,15 +331,15 @@ const Profile = () => {
                   <button
                     onClick={handleConnectionRequest}
                     disabled={connectLoading}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-purple-500/30 text-purple-200 text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-app text-app text-xs font-semibold transition-all active:scale-95 cursor-pointer"
                   >
                     {profile.connection_status === "connected"
-                      ? "Connected 🤝"
+                      ? `${t("profile.connected") || "Connected"} 🤝`
                       : profile.connection_status === "pending_sent"
-                      ? "Pending..."
+                      ? `${t("profile.pending") || "Pending..."}`
                       : profile.connection_status === "pending_received"
-                      ? "Accept Request"
-                      : "Connect"}
+                      ? t("profile.acceptRequest") || "Accept Request"
+                      : t("profile.connect") || "Connect"}
                   </button>
 
                   {/* Block / Unblock Button */}
@@ -338,11 +350,11 @@ const Profile = () => {
                         ? "bg-rose-600/30 border-rose-500/50 text-rose-300 hover:bg-rose-600/50"
                         : "bg-purple-950/60 border-purple-800/60 text-purple-300 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/30"
                     }`}
-                    title={profile.is_blocked_by_me ? "Unblock user" : "Block user"}
+                    title={profile.is_blocked_by_me ? (t("profile.unblock") || "Unblock user") : (t("profile.block") || "Block user")}
                   >
                     {profile.is_blocked_by_me ? (
                       <span className="flex items-center gap-1 text-rose-400">
-                        <ShieldAlert size={15} /> Unblock
+                        <ShieldAlert size={15} /> {t("profile.unblock") || "Unblock"}
                       </span>
                     ) : (
                       <UserX size={15} />
@@ -356,25 +368,25 @@ const Profile = () => {
           {/* User Details */}
           <div className="mt-4 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-1.5">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">
+              <h2 className="text-xl sm:text-2xl font-bold text-app">
                 {profile.full_name || "User"}
               </h2>
               {profile.is_verified && (
                 <BadgeCheck size={20} className="text-blue-400" />
               )}
             </div>
-            <p className="text-purple-300/80 text-xs sm:text-sm">
+            <p className="text-app-muted text-xs sm:text-sm">
               @{profile.username || "user"}
             </p>
 
             {profile.bio && (
-              <p className="text-purple-100/90 text-sm mt-3 leading-relaxed max-w-2xl whitespace-pre-line">
+              <p className="text-app text-sm mt-3 leading-relaxed max-w-2xl whitespace-pre-line">
                 {profile.bio}
               </p>
             )}
 
             {/* Chips Row */}
-            <div className="flex items-center gap-4 mt-4 text-xs text-purple-300/70 flex-wrap justify-center sm:justify-start">
+            <div className="flex items-center gap-4 mt-4 text-xs text-app-muted flex-wrap justify-center sm:justify-start">
               {profile.location && (
                 <span className="flex items-center gap-1">
                   <MapPin size={14} className="text-pink-400" />
@@ -384,30 +396,30 @@ const Profile = () => {
               {profile.createdAt && (
                 <span className="flex items-center gap-1">
                   <Calendar size={14} className="text-indigo-400" />
-                  <span>Joined {moment(profile.createdAt).format("MMMM YYYY")}</span>
+                  <span>{t("profile.joined") || "Joined"} {moment(profile.createdAt).format("MMMM YYYY")}</span>
                 </span>
               )}
             </div>
 
             {/* Network Counts */}
-            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-purple-500/20 text-xs text-purple-200/90 justify-center sm:justify-start">
+            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-app text-xs text-app-muted justify-center sm:justify-start">
               <div>
-                <span className="font-bold text-white text-sm mr-1">
+                <span className="font-bold text-app text-sm mr-1">
                   {profile.followers_count ?? (profile.followers?.length || 0)}
                 </span>
-                <span>Followers</span>
+                <span>{t("profile.followers") || "Followers"}</span>
               </div>
               <div>
-                <span className="font-bold text-white text-sm mr-1">
+                <span className="font-bold text-app text-sm mr-1">
                   {profile.following_count ?? (profile.following?.length || 0)}
                 </span>
-                <span>Following</span>
+                <span>{t("profile.following") || "Following"}</span>
               </div>
               <div>
-                <span className="font-bold text-white text-sm mr-1">
+                <span className="font-bold text-app text-sm mr-1">
                   {profile.connections_count ?? (profile.connections?.length || 0)}
                 </span>
-                <span>Connections</span>
+                <span>{t("profile.connections") || "Connections"}</span>
               </div>
             </div>
           </div>
@@ -416,11 +428,11 @@ const Profile = () => {
         {/* Blocked by them notice */}
         {profile.has_blocked_me ? (
           <div className="my-10 p-8 rounded-3xl bg-pink-950/30 border border-pink-500/30 text-center">
-            <p className="text-base text-pink-300 font-semibold mb-1" dir="rtl">
-              هذا المستخدم قام بحظرك
+            <p className="text-base text-pink-300 font-semibold mb-1">
+              {t("profile.blockedNotice") || "This user has blocked you"}
             </p>
-            <p className="text-xs text-purple-300/70">
-              User details and posts are not accessible.
+            <p className="text-xs text-app-muted">
+              {t("profile.blockedDetails") || "User details and posts are not accessible."}
             </p>
           </div>
         ) : (
@@ -432,10 +444,10 @@ const Profile = () => {
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold tracking-wider transition-all cursor-pointer ${
                   activeTab === "POSTS"
                     ? "bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.7)]"
-                    : "bg-white/5 text-purple-300 hover:bg-white/10 border border-purple-500/20"
+                    : "bg-white/5 text-app-muted hover:bg-white/10 border border-app"
                 }`}
               >
-                <FileText size={15} /> POSTS
+                <FileText size={15} /> {t("profile.postsTab") || "POSTS"}
               </button>
 
               <button
@@ -443,10 +455,10 @@ const Profile = () => {
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold tracking-wider transition-all cursor-pointer ${
                   activeTab === "MEDIA"
                     ? "bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.7)]"
-                    : "bg-white/5 text-purple-300 hover:bg-white/10 border border-purple-500/20"
+                    : "bg-white/5 text-app-muted hover:bg-white/10 border border-app"
                 }`}
               >
-                <Grid size={15} /> MEDIA
+                <Grid size={15} /> {t("profile.mediaTab") || "MEDIA"}
               </button>
             </div>
 
@@ -458,13 +470,17 @@ const Profile = () => {
                 </div>
               ) : posts.length === 0 ? (
                 <EmptyState
-                  title={activeTab === "MEDIA" ? "No photos or media yet" : "No posts published yet"}
+                  title={
+                    activeTab === "MEDIA"
+                      ? (t("profile.noMediaTitle") || "No photos or media yet")
+                      : (t("profile.noPostsTitle") || "No posts published yet")
+                  }
                   message={
                     isOwnProfile
-                      ? "Share your first cosmic moment with the world!"
-                      : "This user has not posted anything yet."
+                      ? (t("profile.shareFirstPost") || "Share your first cosmic moment with the world!")
+                      : (t("profile.userNoPosts") || "This user has not posted anything yet.")
                   }
-                  actionText={isOwnProfile ? "Create Post" : undefined}
+                  actionText={isOwnProfile ? (t("home.createPostAction") || "Create Post") : undefined}
                   onAction={isOwnProfile ? () => navigate("/create-post") : undefined}
                 />
               ) : activeTab === "MEDIA" ? (
@@ -474,7 +490,7 @@ const Profile = () => {
                       <div
                         key={`${post._id}-${i}`}
                         onClick={() => navigate(`/post/${post._id}`)}
-                        className="relative rounded-2xl overflow-hidden aspect-square border border-purple-500/20 group cursor-pointer"
+                        className="relative rounded-2xl overflow-hidden aspect-square border border-app group cursor-pointer"
                       >
                         <img
                           src={img}
@@ -490,6 +506,8 @@ const Profile = () => {
                   <PostCard
                     key={post._id}
                     post={post}
+                    onDeleted={handlePostDeleted}
+                    onUpdated={handlePostUpdated}
                     className="hover:shadow-[0_0_25px_rgba(168,85,247,0.3)] transition-all duration-300"
                   />
                 ))
@@ -502,32 +520,32 @@ const Profile = () => {
       {/* EDIT PROFILE MODAL */}
       {isEditOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-lg bg-linear-to-b from-[#1a1f4d] via-[#12173d] to-[#0b0f3b] border border-purple-500/40 rounded-3xl p-6 sm:p-8 shadow-[0_0_35px_rgba(168,85,247,0.4)] text-white relative max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="w-full max-w-lg bg-app-card border border-app rounded-3xl p-6 sm:p-8 shadow-2xl text-app relative max-h-[90vh] overflow-y-auto no-scrollbar">
             <button
               onClick={() => setIsEditOpen(false)}
-              className="absolute top-5 right-5 p-1 text-purple-300 hover:text-white rounded-full cursor-pointer"
+              className="absolute top-5 right-5 p-1 text-app-muted hover:text-app rounded-full cursor-pointer"
             >
               <X size={20} />
             </button>
 
             <h2 className="text-xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300">
-              Edit Profile
+              {t("profile.editProfile") || "Edit Profile"}
             </h2>
 
             <form onSubmit={handleSaveProfile} className="space-y-4">
               {/* Cover Photo Picker */}
               <div>
-                <label className="block text-xs font-semibold text-purple-200 mb-1.5">
-                  Cover Photo
+                <label className="block text-xs font-semibold text-app-muted mb-1.5">
+                  {t("profile.coverPhoto") || "Cover Photo"}
                 </label>
-                <div className="relative w-full h-28 rounded-2xl overflow-hidden border border-purple-500/30 group bg-purple-950/40">
+                <div className="relative w-full h-28 rounded-2xl overflow-hidden border border-app group bg-white/5">
                   <img
                     src={coverPhotoPreview || profile.cover_photo || ""}
                     alt="Cover preview"
                     className="w-full h-full object-cover"
                   />
                   <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 text-xs font-semibold text-white transition-opacity cursor-pointer">
-                    <Camera size={16} /> Change Cover Photo
+                    <Camera size={16} /> {t("profile.changeCover") || "Change Cover Photo"}
                     <input
                       type="file"
                       accept="image/*"
@@ -552,8 +570,8 @@ const Profile = () => {
                   size="xl"
                   ring={true}
                 />
-                <label className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 border border-purple-500/30 text-purple-200 hover:text-white transition cursor-pointer">
-                  Change Profile Picture
+                <label className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 border border-app text-app hover:text-white transition cursor-pointer">
+                  {t("profile.changeAvatar") || "Change Profile Picture"}
                   <input
                     type="file"
                     accept="image/*"
@@ -571,22 +589,22 @@ const Profile = () => {
 
               {/* Full Name */}
               <div>
-                <label className="block text-xs font-semibold text-purple-200 mb-1">
-                  Full Name
+                <label className="block text-xs font-semibold text-app-muted mb-1">
+                  {t("profile.fullName") || "Full Name"}
                 </label>
                 <input
                   type="text"
                   value={editFullName}
                   onChange={(e) => setEditFullName(e.target.value)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#0f172a]/70 border border-purple-500/30 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full py-2.5 px-4 rounded-xl bg-app-input border border-app text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
                   required
                 />
               </div>
 
               {/* Username */}
               <div>
-                <label className="block text-xs font-semibold text-purple-200 mb-1">
-                  Username
+                <label className="block text-xs font-semibold text-app-muted mb-1">
+                  {t("profile.username") || "Username"}
                 </label>
                 <input
                   type="text"
@@ -595,9 +613,9 @@ const Profile = () => {
                     setEditUsername(e.target.value);
                     setUsernameError("");
                   }}
-                  className={`w-full py-2.5 px-4 rounded-xl bg-[#0f172a]/70 border ${
-                    usernameError ? "border-rose-500" : "border-purple-500/30"
-                  } text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-400`}
+                  className={`w-full py-2.5 px-4 rounded-xl bg-app-input border ${
+                    usernameError ? "border-rose-500" : "border-app"
+                  } text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400`}
                   required
                 />
                 {usernameError && (
@@ -607,48 +625,48 @@ const Profile = () => {
 
               {/* Location */}
               <div>
-                <label className="block text-xs font-semibold text-purple-200 mb-1">
-                  Location
+                <label className="block text-xs font-semibold text-app-muted mb-1">
+                  {t("profile.location") || "Location"}
                 </label>
                 <input
                   type="text"
                   value={editLocation}
-                  placeholder="Enter your location"
+                  placeholder={t("profile.locationPlaceholder") || "Enter your location"}
                   onChange={(e) => setEditLocation(e.target.value)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#0f172a]/70 border border-purple-500/30 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full py-2.5 px-4 rounded-xl bg-app-input border border-app text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
                 />
               </div>
 
               {/* Bio */}
               <div>
-                <label className="block text-xs font-semibold text-purple-200 mb-1">
-                  Bio
+                <label className="block text-xs font-semibold text-app-muted mb-1">
+                  {t("profile.bio") || "Bio"}
                 </label>
                 <textarea
                   rows={3}
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#0f172a]/70 border border-purple-500/30 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+                  className="w-full py-2.5 px-4 rounded-xl bg-app-input border border-app text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
                   maxLength={500}
                 />
               </div>
 
               {/* Footer Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-purple-500/20">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-app">
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-purple-500/30 text-purple-200 hover:bg-white/5 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-app text-app hover:bg-white/5 transition cursor-pointer"
                 >
-                  Cancel
+                  {t("common.cancel") || "Cancel"}
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-2 rounded-xl text-xs font-semibold bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2 rounded-xl text-xs font-semibold bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {isSaving ? "Saving..." : "Save Changes"}
+                  {isSaving ? (t("common.saving") || "Saving...") : (t("common.save") || "Save Changes")}
                 </button>
               </div>
             </form>

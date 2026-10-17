@@ -1,10 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr" data-palette="cosmic" data-mode="dark" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlowNet</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('flownet_theme');
+          var palette = 'cosmic';
+          var mode = 'dark';
+          if (stored) {
+            var parsed = JSON.parse(stored);
+            if (parsed.palette === 'cosmic' || parsed.palette === 'midnight') palette = parsed.palette;
+            if (['light', 'dark', 'system'].indexOf(parsed.mode) !== -1) mode = parsed.mode;
+          }
+          var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var resolvedMode = mode === 'system' ? (isDark ? 'dark' : 'light') : mode;
+          document.documentElement.setAttribute('data-palette', palette);
+          document.documentElement.setAttribute('data-mode', resolvedMode);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          }
+          var storedLang = localStorage.getItem('flownet_lang') || 'en';
+          document.documentElement.setAttribute('lang', storedLang);
+          document.documentElement.setAttribute('dir', 'ltr');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

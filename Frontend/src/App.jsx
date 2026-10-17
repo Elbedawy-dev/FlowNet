@@ -18,9 +18,25 @@ import GroupChat from "./pages/groups/GroupChat.jsx";
 import GroupCreate from "./pages/groups/GroupCreate.jsx";
 import { useUser } from "@clerk/clerk-react";
 import { Toaster } from "react-hot-toast";
+import { useEffect } from "react";
+import { useCurrentUser } from "./context/CurrentUserContext.jsx";
+import { useTheme } from "./context/ThemeContext.jsx";
+import { useLanguage } from "./context/LanguageContext.jsx";
 
 function App() {
   const { user } = useUser();
+  const { currentUser } = useCurrentUser();
+  const { setPalette, setMode } = useTheme();
+  const { setLang } = useLanguage();
+
+  useEffect(() => {
+    if (currentUser?.settings?.appearance) {
+      const { theme, mode, language } = currentUser.settings.appearance;
+      if (theme) setPalette(theme, false);
+      if (mode) setMode(mode, false);
+      if (language) setLang(language, false);
+    }
+  }, [currentUser, setPalette, setMode, setLang]);
 
   if (!user) {
     return (

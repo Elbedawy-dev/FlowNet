@@ -1,16 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowRight,
+  ArrowLeft,
   Send,
   Image as ImageIcon,
   Users,
-  Shield,
-  Crown,
   Check,
   X,
   UserCheck,
-  AlertCircle,
   MessageCircle,
 } from 'lucide-react';
 import moment from 'moment';
@@ -18,6 +15,7 @@ import toast from 'react-hot-toast';
 import { groupsApi } from '../../api/axios';
 import { useCurrentUser } from '../../context/CurrentUserContext';
 import { useSocket } from '../../context/SocketContext';
+import { useLanguage } from '../../context/LanguageContext';
 import Avatar from '../../components/Avatar';
 import Loading from '../../components/Loading';
 import { getGroupIcon } from '../../utils/groupIcons';
@@ -27,6 +25,7 @@ const GroupChat = () => {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
   const { socket } = useSocket();
+  const { t } = useLanguage();
 
   const [group, setGroup] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -59,7 +58,7 @@ const GroupChat = () => {
         if (!isMounted) return;
 
         if (!groupData.is_member) {
-          toast.error('يجب أن تكون عضواً في المجموعة للوصول إلى المحادثة');
+          toast.error(t('groups.mustBeMember'));
           navigate('/groups/joined');
           return;
         }
@@ -73,10 +72,10 @@ const GroupChat = () => {
       } catch (err) {
         console.warn('Failed to load group chat:', err);
         if (err.status === 403 || err.status === 404) {
-          toast.error('يجب أن تكون عضواً في المجموعة للوصول إلى المحادثة');
+          toast.error(t('groups.mustBeMember'));
           navigate('/groups/joined');
         } else {
-          toast.error(err.message || 'حدث خطأ أثناء تحميل المحادثة');
+          toast.error(err.message || t('common.error'));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -88,7 +87,7 @@ const GroupChat = () => {
     return () => {
       isMounted = false;
     };
-  }, [groupId, navigate]);
+  }, [groupId, navigate, t]);
 
   // 2. Socket: Join group room and listen for group messages
   useEffect(() => {
@@ -135,9 +134,9 @@ const GroupChat = () => {
       await groupsApi.acceptRequest(groupId, userId);
       setPendingRequests((prev) => prev.filter((u) => u._id !== userId));
       setGroup((prev) => ({ ...prev, members_count: (prev.members_count || 0) + 1 }));
-      toast.success('تم قبول العضو بنجاح ✨');
+      toast.success(t('groups.acceptedSuccess'));
     } catch (err) {
-      toast.error(err.message || 'فشل قبول العضو');
+      toast.error(err.message || t('common.error'));
     }
   };
 
@@ -145,9 +144,9 @@ const GroupChat = () => {
     try {
       await groupsApi.rejectRequest(groupId, userId);
       setPendingRequests((prev) => prev.filter((u) => u._id !== userId));
-      toast.success('تم رفض الطلب');
+      toast.success(t('groups.rejectedSuccess'));
     } catch (err) {
-      toast.error(err.message || 'فشل رفض الطلب');
+      toast.error(err.message || t('common.error'));
     }
   };
 
@@ -156,7 +155,7 @@ const GroupChat = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('حجم الصورة كبير جداً (الحد الأقصى 10MB)');
+        toast.error('Image size is too large (max 10MB)');
         return;
       }
       setMediaFile(file);
@@ -190,7 +189,7 @@ const GroupChat = () => {
         group: groupId,
         sender: {
           _id: currentUser?._id,
-          full_name: currentUser?.full_name || 'أنا',
+          full_name: currentUser?.full_name || 'Me',
           username: currentUser?.username || 'me',
           profile_picture: currentUser?.profile_picture,
         },
@@ -211,7 +210,7 @@ const GroupChat = () => {
         prev.map((m) => (m._id === tempId ? serverMsg : m))
       );
     } catch (err) {
-      toast.error(err.message || 'فشل إرسال الرسالة');
+      toast.error(err.message || t('common.error'));
     } finally {
       setSending(false);
     }
@@ -227,17 +226,17 @@ const GroupChat = () => {
     group?.owner === currentUser?._id;
 
   return (
-    <div dir="rtl" className="max-w-4xl mx-auto px-2 sm:px-4 py-4 h-[calc(100vh-5rem)] flex flex-col">
+    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 h-[calc(100vh-5rem)] flex flex-col">
       {/* Top Bar (Purple Gradient Header) */}
-      <div className="bg-gradient-to-r from-indigo-900/90 via-purple-900/90 to-[#182034] border border-purple-500/30 rounded-2xl p-4 mb-3 shadow-[0_0_25px_rgba(168,85,247,0.3)] flex items-center justify-between shrink-0">
+      <div className="bg-app-card/90 backdrop-blur border border-app rounded-2xl p-4 mb-3 shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/groups/joined')}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition cursor-pointer"
-            title="رجوع"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-app-muted hover:text-app transition cursor-pointer"
+            title={t('common.back')}
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
 
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-white shrink-0 shadow-md">
@@ -245,12 +244,12 @@ const GroupChat = () => {
           </div>
 
           <div>
-            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>{group?.name || 'غرفة الدردشة'} 💬</span>
+            <h1 className="text-lg font-bold text-app flex items-center gap-2">
+              <span>{group?.name || t('groups.chatTitle')} 💬</span>
             </h1>
-            <p className="text-xs text-purple-200/80 flex items-center gap-1.5">
+            <p className="text-xs text-app-muted flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
-              <span>{group?.members_count || 0} عضو</span>
+              <span>{group?.members_count || 0} {t('groups.membersCount')}</span>
             </p>
           </div>
         </div>
@@ -263,11 +262,11 @@ const GroupChat = () => {
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 ${
               showRequestsPanel
                 ? 'bg-purple-600 text-white border-purple-400'
-                : 'bg-purple-950/40 border-purple-500/30 text-purple-200 hover:bg-purple-900/50'
+                : 'bg-app-input border-app text-app hover:bg-white/5'
             }`}
           >
             <UserCheck className="w-4 h-4 text-pink-400" />
-            <span>طلبات الانضمام</span>
+            <span>{t('groups.pendingRequests')}</span>
             {pendingRequests.length > 0 && (
               <span className="w-5 h-5 rounded-full bg-pink-500 text-white text-[10px] flex items-center justify-center">
                 {pendingRequests.length}
@@ -279,15 +278,15 @@ const GroupChat = () => {
 
       {/* Owner Pending Requests Panel */}
       {showRequestsPanel && isOwnerOrAdmin && (
-        <div className="bg-[#121735]/95 border border-purple-500/30 rounded-2xl p-4 mb-3 shadow-xl shrink-0">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-purple-500/20">
-            <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+        <div className="bg-app-card border border-app rounded-2xl p-4 mb-3 shadow-xl shrink-0">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-app">
+            <h3 className="text-sm font-bold text-app flex items-center gap-1.5">
               <UserCheck className="w-4 h-4 text-purple-400" />
-              طلبات الانضمام المعلقة
+              {t('groups.pendingRequests')}
             </h3>
             <button
               onClick={() => setShowRequestsPanel(false)}
-              className="text-gray-400 hover:text-white p-1 rounded-lg"
+              className="text-app-muted hover:text-app p-1 rounded-lg"
             >
               <X className="w-4 h-4" />
             </button>
@@ -298,15 +297,15 @@ const GroupChat = () => {
               <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : pendingRequests.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">
-              لا توجد طلبات انضمام جديدة حالياً.
+            <p className="text-xs text-app-muted text-center py-2">
+              {t('connections.emptyPending')}
             </p>
           ) : (
             <div className="space-y-2 max-h-40 overflow-y-auto no-scrollbar">
               {pendingRequests.map((reqUser) => (
                 <div
                   key={reqUser._id}
-                  className="flex items-center justify-between p-2.5 bg-[#0e1428] rounded-xl border border-purple-500/20"
+                  className="flex items-center justify-between p-2.5 bg-app-input rounded-xl border border-app"
                 >
                   <div className="flex items-center gap-2.5">
                     <Avatar
@@ -315,10 +314,10 @@ const GroupChat = () => {
                       size="sm"
                     />
                     <div>
-                      <div className="text-xs font-bold text-white">
+                      <div className="text-xs font-bold text-app">
                         {reqUser.full_name}
                       </div>
-                      <div className="text-[10px] text-gray-400">
+                      <div className="text-[10px] text-app-muted">
                         @{reqUser.username}
                       </div>
                     </div>
@@ -329,7 +328,7 @@ const GroupChat = () => {
                       type="button"
                       onClick={() => handleAcceptRequest(reqUser._id)}
                       className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition cursor-pointer"
-                      title="قبول"
+                      title={t('groups.accept')}
                     >
                       <Check className="w-3.5 h-3.5" />
                     </button>
@@ -337,7 +336,7 @@ const GroupChat = () => {
                       type="button"
                       onClick={() => handleRejectRequest(reqUser._id)}
                       className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition cursor-pointer"
-                      title="رفض"
+                      title={t('groups.reject')}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -350,49 +349,51 @@ const GroupChat = () => {
       )}
 
       {/* Chat Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 bg-[#121735]/70 backdrop-blur border border-purple-500/20 rounded-2xl space-y-4 shadow-inner no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 bg-app-card/40 backdrop-blur border border-app rounded-2xl space-y-4 shadow-inner no-scrollbar">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400">
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-app-muted">
             <MessageCircle className="w-12 h-12 text-purple-400/40 mb-3 animate-pulse" />
-            <h3 className="text-lg font-bold text-white mb-1">
-              مرحباً بك في {group?.name}! 🚀
+            <h3 className="text-lg font-bold text-app mb-1">
+              {group?.name}! 🚀
             </h3>
-            <p className="text-xs text-gray-400 max-w-sm">
-              لا توجد رسائل سابقة هنا بعد. كن أول من يفتتح النقاش ويرحب بالأعضاء!
+            <p className="text-xs text-app-muted max-w-sm">
+              {t('messages.typeMessage')}
             </p>
           </div>
         ) : (
           messages.map((msg) => {
             const senderId = msg.sender?._id || msg.sender;
             const isMe = senderId === currentUser?._id;
-            const senderName = isMe ? 'أنا' : msg.sender?.full_name || 'عضو';
+            const senderName = isMe ? (currentUser?.full_name || 'Me') : msg.sender?.full_name || 'Member';
 
             return (
               <div
                 key={msg._id}
                 className={`flex items-end gap-2.5 ${
-                  isMe ? 'justify-start flex-row-reverse' : 'justify-start'
+                  isMe ? 'justify-end' : 'justify-start'
                 }`}
               >
                 {/* Avatar */}
-                <Avatar
-                  src={msg.sender?.profile_picture}
-                  name={senderName}
-                  size="sm"
-                  className="shrink-0 mb-1"
-                />
+                {!isMe && (
+                  <Avatar
+                    src={msg.sender?.profile_picture}
+                    name={senderName}
+                    size="sm"
+                    className="shrink-0 mb-1"
+                  />
+                )}
 
                 {/* Message Bubble */}
                 <div
                   className={`max-w-[78%] sm:max-w-[65%] rounded-2xl p-3 shadow-md ${
                     isMe
                       ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-br-none'
-                      : 'bg-[#1b223c] border border-purple-500/20 text-gray-100 rounded-bl-none'
+                      : 'bg-app-card border border-app text-app rounded-bl-none'
                   }`}
                 >
                   {/* Sender Name (never raw IDs!) */}
                   {!isMe && (
-                    <div className="text-xs font-bold text-pink-300 mb-1">
+                    <div className="text-xs font-bold text-pink-400 mb-1">
                       {senderName}
                     </div>
                   )}
@@ -418,13 +419,22 @@ const GroupChat = () => {
 
                   {/* Timestamp */}
                   <div
-                    className={`text-[10px] mt-1 text-left ${
-                      isMe ? 'text-purple-200/80' : 'text-gray-400'
+                    className={`text-[10px] mt-1 ${
+                      isMe ? 'text-white/80 text-right' : 'text-app-muted text-left'
                     }`}
                   >
                     {moment(msg.createdAt).format('hh:mm A')}
                   </div>
                 </div>
+
+                {isMe && (
+                  <Avatar
+                    src={currentUser?.profile_picture}
+                    name={senderName}
+                    size="sm"
+                    className="shrink-0 mb-1"
+                  />
+                )}
               </div>
             );
           })
@@ -434,7 +444,7 @@ const GroupChat = () => {
 
       {/* Media Preview before sending */}
       {mediaPreview && (
-        <div className="mt-2 p-2 bg-[#121735] border border-purple-500/30 rounded-xl flex items-center justify-between w-fit gap-3">
+        <div className="mt-2 p-2 bg-app-card border border-app rounded-xl flex items-center justify-between w-fit gap-3">
           <img
             src={mediaPreview}
             alt="Preview"
@@ -453,13 +463,13 @@ const GroupChat = () => {
       {/* Bottom Floating Bar */}
       <form
         onSubmit={handleSendMessage}
-        className="mt-3 flex items-center gap-2 bg-[#182034]/90 backdrop-blur border border-purple-500/30 rounded-2xl p-2 shadow-lg"
+        className="mt-3 flex items-center gap-2 bg-app-card/90 backdrop-blur border border-app rounded-2xl p-2 shadow-lg"
       >
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-2.5 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer shrink-0"
-          title="إرفاق صورة"
+          className="p-2.5 rounded-xl text-app-muted hover:text-app hover:bg-white/5 transition cursor-pointer shrink-0"
+          title="Attach image"
         >
           <ImageIcon className="w-5 h-5 text-purple-400" />
         </button>
@@ -475,8 +485,8 @@ const GroupChat = () => {
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="اكتب رسالة..."
-          className="flex-1 bg-transparent px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none"
+          placeholder={t('groups.typeMessage')}
+          className="flex-1 bg-transparent px-3 py-2 text-app placeholder-app-muted text-sm focus:outline-none"
         />
 
         <button
@@ -488,8 +498,8 @@ const GroupChat = () => {
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <Send className="w-4 h-4 rotate-180" />
-              <span>إرسال</span>
+              <Send className="w-4 h-4" />
+              <span>{t('common.send')}</span>
             </>
           )}
         </button>

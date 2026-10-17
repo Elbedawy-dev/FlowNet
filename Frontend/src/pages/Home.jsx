@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Bell, Menu, X } from "lucide-react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import logo from "../assets/logo.png";
 import StoriesBar from "../components/StoriesBar";
 import RecentMessages from "../components/RecentMessages";
 import PostCard from "../components/PostCard";
 import { PostCardSkeleton } from "../components/Skeletons";
 import EmptyState from "../components/EmptyState";
+import NotificationBadge from "../components/NotificationBadge";
 import { postsApi } from "../api/axios";
 import { useNotifications } from "../context/NotificationsContext";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useLanguage } from "../context/LanguageContext";
 
 const Home = () => {
   const [posts, setPosts] = useState([]);
@@ -20,7 +22,11 @@ const Home = () => {
   const [searchInput, setSearchInput] = useState("");
 
   const navigate = useNavigate();
+  const outletCtx = useOutletContext();
+  const sideBarOpen = outletCtx?.sideBarOpen ?? false;
+  const setSideBarOpen = outletCtx?.setSideBarOpen ?? (() => {});
   const { unreadCount } = useNotifications();
+  const { t } = useLanguage();
 
   const fetchInitialPosts = useCallback(async () => {
     try {
@@ -66,38 +72,70 @@ const Home = () => {
     }
   };
 
-  return (
-    <div className="h-full overflow-y-scroll no-scrollbar py-6 xl:pr-5 flex flex-col items-center bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white relative pb-32">
-      {/* Top Header Bar */}
-      <div className="w-[92%] max-w-6xl flex justify-between items-center p-3 mb-6 z-20 rounded-3xl bg-white/5 backdrop-blur-xl border border-purple-500/20 shadow-[0_0_25px_rgba(131,58,180,0.3)]">
-        <img
-          src={logo}
-          alt="FlowNet"
-          className="h-9 mr-3 hidden sm:block animate-pulse object-contain cursor-pointer"
-          onClick={() => navigate("/")}
-        />
+  const handlePostDeleted = (deletedId) => {
+    setPosts((prev) => prev.filter((p) => p._id !== deletedId));
+  };
 
-        <div className="flex-1 mx-2 sm:mx-6 max-w-md">
-          <input
-            type="text"
-            placeholder="ابحث هنا..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            className="w-full py-2.5 px-4 text-sm rounded-full border border-purple-500/30 bg-[#0f172a]/70 text-white placeholder-purple-300/60 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all shadow-inner text-right"
-            dir="rtl"
-          />
+  const handlePostUpdated = (updatedPost) => {
+    setPosts((prev) =>
+      prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
+    );
+  };
+
+  return (
+    <div className="h-full overflow-y-scroll no-scrollbar py-6 pt-5 sm:pt-6 xl:pr-5 flex flex-col items-center bg-app-page text-app relative pb-32">
+      {/* Top Header Bar */}
+      <div className="w-[92%] max-w-6xl mb-6 z-20 rounded-3xl bg-app-card backdrop-blur-xl border border-app shadow-app-glow p-3">
+        {/* Mobile Row 1 (sm:hidden): Logo + FlowNet (Left) and Toggle (Right) */}
+        <div className="flex sm:hidden items-center justify-between w-full mb-3">
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate("/")}
+          >
+            <img src={logo} alt="FlowNet" className="h-8 object-contain animate-pulse" />
+            <span className="font-bold text-lg tracking-tight bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              FlowNet
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSideBarOpen((prev) => !prev)}
+            className="relative z-50 p-2 bg-purple-900/80 text-white rounded-2xl border border-purple-500/40 shadow-lg w-10 h-10 flex items-center justify-center cursor-pointer backdrop-blur transition-all active:scale-95"
+            aria-label="Toggle menu"
+          >
+            {sideBarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
 
-        <div
-          onClick={() => navigate("/notifications")}
-          className="relative cursor-pointer p-2.5 rounded-full bg-linear-to-br from-purple-600 to-pink-500 shadow-[0_0_20px_rgba(255,0,255,0.5)] hover:scale-110 active:scale-95 transition-all"
-          title="Notifications"
-        >
-          <Bell className="w-5 h-5 text-white" />
-          {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-red-500 animate-pulse ring-2 ring-[#0b0f3b]" />
-          )}
+        {/* Row 2 on Mobile / Full Row on Desktop */}
+        <div className="flex items-center justify-between w-full">
+          {/* Desktop Logo */}
+          <img
+            src={logo}
+            alt="FlowNet"
+            className="h-9 mr-3 hidden sm:block animate-pulse object-contain cursor-pointer"
+            onClick={() => navigate("/")}
+          />
+
+          <div className="flex-1 mx-1 sm:mx-6 max-w-md">
+            <input
+              type="text"
+              placeholder={t("home.searchPlaceholder")}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="w-full py-2.5 px-4 text-sm rounded-full border border-app bg-app-input text-app placeholder-app-muted focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all shadow-inner"
+            />
+          </div>
+
+          <div
+            onClick={() => navigate("/notifications")}
+            className="relative cursor-pointer p-2.5 rounded-full bg-linear-to-br from-purple-600 to-pink-500 shadow-[0_0_20px_rgba(255,0,255,0.5)] hover:scale-110 active:scale-95 transition-all shrink-0 ml-2"
+            title={t("home.notificationsTooltip")}
+          >
+            <Bell className="w-5 h-5 text-white" />
+            <NotificationBadge count={unreadCount} />
+          </div>
         </div>
       </div>
 
@@ -113,9 +151,9 @@ const Home = () => {
             </div>
           ) : posts.length === 0 ? (
             <EmptyState
-              title="No posts in the cosmic feed yet"
-              message="Be the first explorer to share a spark in FlowNet!"
-              actionText="Create Post"
+              title={t("home.noPostsTitle")}
+              message={t("home.noPostsDesc")}
+              actionText={t("home.createPostAction")}
               onAction={() => navigate("/create-post")}
             />
           ) : (
@@ -123,6 +161,8 @@ const Home = () => {
               <PostCard
                 key={post._id}
                 post={post}
+                onDeleted={handlePostDeleted}
+                onUpdated={handlePostUpdated}
                 className="hover:shadow-[0_0_25px_rgba(168,85,247,0.3)] transition-all duration-300"
               />
             ))
@@ -133,7 +173,7 @@ const Home = () => {
             {loadingMore && (
               <div className="flex items-center justify-center gap-2 text-xs text-purple-300 animate-pulse">
                 <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
-                Loading more cosmic posts...
+                {t("home.loadingMore")}
               </div>
             )}
           </div>

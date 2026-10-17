@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createStory,
+  updateStory,
   getStories,
   viewStory,
   deleteStory,
@@ -16,6 +17,7 @@ router.use(requireAuth, ensureUser);
 
 router.post('/', uploadLimiter, uploadStoryMedia, createStory);
 router.get('/', getStories);
+router.put('/:id', updateStory);
 router.post('/:id/view', viewStory);
 router.delete('/:id', deleteStory);
 

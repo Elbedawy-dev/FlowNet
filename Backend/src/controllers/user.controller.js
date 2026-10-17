@@ -37,6 +37,7 @@ export const updateSettingsSchema = z.object({
   appearance: z
     .object({
       theme: z.enum(['cosmic', 'midnight']).optional(),
+      mode: z.enum(['light', 'dark', 'system']).optional(),
       language: z.enum(['ar', 'en']).optional(),
     })
     .optional(),
@@ -519,6 +520,9 @@ export const updateSettings = asyncHandler(async (req, res) => {
   if (appearance) {
     if (appearance.theme !== undefined) {
       updateData['settings.appearance.theme'] = appearance.theme;
+    }
+    if (appearance.mode !== undefined) {
+      updateData['settings.appearance.mode'] = appearance.mode;
     }
     if (appearance.language !== undefined) {
       updateData['settings.appearance.language'] = appearance.language;

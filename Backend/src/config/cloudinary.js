@@ -47,6 +47,17 @@ export const uploadFromBuffer = (buffer, options = {}) => {
 };
 
 /**
+ * Extract publicId from Cloudinary URL
+ * @param {string} url - Cloudinary URL
+ * @returns {string|null} public_id
+ */
+export const extractPublicId = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const match = url.match(/\/upload\/(?:v\d+\/)?([^\.]+)/);
+  return match ? match[1] : null;
+};
+
+/**
  * Delete a resource from Cloudinary
  * @param {string} publicId - Cloudinary public_id
  * @param {string} resourceType - 'image' | 'video' | 'raw'

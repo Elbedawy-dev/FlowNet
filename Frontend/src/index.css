@@ -1,7 +1,124 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 @import "tailwindcss";
 
+:root {
+  /* Default: Cosmic + Dark */
+  --app-from: #0b0f3b;
+  --app-via: #1a1f4d;
+  --app-to: #3c1f7f;
+  --app-card: #182034;
+  --app-card-2: #121735;
+  --app-card-glass: rgba(255, 255, 255, 0.05);
+  --app-border: rgba(168, 85, 247, 0.2);
+  --app-border-hover: rgba(168, 85, 247, 0.45);
+  --app-text: #ffffff;
+  --app-muted: #9ca3af;
+  --app-accent: #a855f7;
+  --app-accent-2: #ec4899;
+  --app-input: #0f172a;
+  --app-sidebar: rgba(11, 15, 59, 0.95);
+  --app-glow: 0 0 25px rgba(131, 58, 180, 0.4);
+  --app-ring-active: rgba(168, 85, 247, 0.6);
+}
+
+/* Cosmic + Dark */
+[data-palette="cosmic"][data-mode="dark"],
+[data-palette="cosmic"].dark {
+  --app-from: #0b0f3b;
+  --app-via: #1a1f4d;
+  --app-to: #3c1f7f;
+  --app-card: #182034;
+  --app-card-2: #121735;
+  --app-card-glass: rgba(255, 255, 255, 0.05);
+  --app-border: rgba(168, 85, 247, 0.2);
+  --app-border-hover: rgba(168, 85, 247, 0.45);
+  --app-text: #ffffff;
+  --app-muted: #9ca3af;
+  --app-accent: #a855f7;
+  --app-accent-2: #ec4899;
+  --app-input: #0f172a;
+  --app-sidebar: rgba(11, 15, 59, 0.95);
+  --app-glow: 0 0 25px rgba(131, 58, 180, 0.4);
+  --app-ring-active: rgba(168, 85, 247, 0.6);
+}
+
+/* Cosmic + Light */
+[data-palette="cosmic"][data-mode="light"],
+[data-palette="cosmic"].light {
+  --app-from: #f5f3ff;
+  --app-via: #ede9fe;
+  --app-to: #e0e7ff;
+  --app-card: #ffffff;
+  --app-card-2: #f8fafc;
+  --app-card-glass: rgba(255, 255, 255, 0.8);
+  --app-border: rgba(168, 85, 247, 0.25);
+  --app-border-hover: rgba(168, 85, 247, 0.5);
+  --app-text: #0f172a;
+  --app-muted: #475569;
+  --app-accent: #9333ea;
+  --app-accent-2: #db2777;
+  --app-input: #ffffff;
+  --app-sidebar: rgba(255, 255, 255, 0.95);
+  --app-glow: 0 4px 20px rgba(147, 51, 234, 0.15);
+  --app-ring-active: rgba(147, 51, 234, 0.6);
+}
+
+/* Midnight + Dark */
+[data-palette="midnight"][data-mode="dark"],
+[data-palette="midnight"].dark {
+  --app-from: #0b1120;
+  --app-via: #111827;
+  --app-to: #1e293b;
+  --app-card: #111827;
+  --app-card-2: #0f172a;
+  --app-card-glass: rgba(255, 255, 255, 0.04);
+  --app-border: rgba(99, 102, 241, 0.2);
+  --app-border-hover: rgba(99, 102, 241, 0.45);
+  --app-text: #ffffff;
+  --app-muted: #94a3b8;
+  --app-accent: #6366f1;
+  --app-accent-2: #3b82f6;
+  --app-input: #0b0f19;
+  --app-sidebar: rgba(11, 17, 32, 0.95);
+  --app-glow: 0 0 25px rgba(99, 102, 241, 0.25);
+  --app-ring-active: rgba(99, 102, 241, 0.6);
+}
+
+/* Midnight + Light */
+[data-palette="midnight"][data-mode="light"],
+[data-palette="midnight"].light {
+  --app-from: #f8fafc;
+  --app-via: #f1f5f9;
+  --app-to: #e2e8f0;
+  --app-card: #ffffff;
+  --app-card-2: #f8fafc;
+  --app-card-glass: rgba(255, 255, 255, 0.85);
+  --app-border: rgba(99, 102, 241, 0.2);
+  --app-border-hover: rgba(99, 102, 241, 0.45);
+  --app-text: #0f172a;
+  --app-muted: #475569;
+  --app-accent: #4f46e5;
+  --app-accent-2: #2563eb;
+  --app-input: #ffffff;
+  --app-sidebar: rgba(255, 255, 255, 0.95);
+  --app-glow: 0 4px 15px rgba(99, 102, 241, 0.1);
+  --app-ring-active: rgba(79, 70, 229, 0.6);
+}
+
 @theme {
+  --color-app-from: var(--app-from);
+  --color-app-via: var(--app-via);
+  --color-app-to: var(--app-to);
+  --color-app-card: var(--app-card);
+  --color-app-card-2: var(--app-card-2);
+  --color-app-border: var(--app-border);
+  --color-app-text: var(--app-text);
+  --color-app-muted: var(--app-muted);
+  --color-app-accent: var(--app-accent);
+  --color-app-accent-2: var(--app-accent-2);
+  --color-app-input: var(--app-input);
+  --color-app-sidebar: var(--app-sidebar);
+
   --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-starTwinkle: starTwinkle 3s ease-in-out infinite;
 
@@ -26,6 +143,46 @@
   }
 }
 
+@utility bg-app-page {
+  background-image: linear-gradient(to bottom, var(--app-from), var(--app-via), var(--app-to));
+}
+
+@utility bg-app-card {
+  background-color: var(--app-card);
+}
+
+@utility bg-app-card-2 {
+  background-color: var(--app-card-2);
+}
+
+@utility bg-app-card-glass {
+  background-color: var(--app-card-glass);
+}
+
+@utility bg-app-input {
+  background-color: var(--app-input);
+}
+
+@utility bg-app-sidebar {
+  background-color: var(--app-sidebar);
+}
+
+@utility border-app {
+  border-color: var(--app-border);
+}
+
+@utility text-app {
+  color: var(--app-text);
+}
+
+@utility text-app-muted {
+  color: var(--app-muted);
+}
+
+@utility shadow-app-glow {
+  box-shadow: var(--app-glow);
+}
+
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -44,13 +201,16 @@
 
 * {
   font-family: "Outfit", sans-serif;
+  box-sizing: border-box;
 }
 
 html, body {
   overflow-x: hidden;
   max-width: 100%;
-  background-color: #0b0f3b;
-  color: #ffffff;
+  min-height: 100vh;
+  background-color: var(--app-from);
+  color: var(--app-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .cl-rootBox,

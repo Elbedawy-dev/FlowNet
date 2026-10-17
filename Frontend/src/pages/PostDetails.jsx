@@ -5,6 +5,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import { postsApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
+import { useLanguage } from "../context/LanguageContext";
 import PostCard from "../components/PostCard";
 import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
@@ -13,6 +14,7 @@ const PostDetails = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
+  const { t } = useLanguage();
 
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
@@ -36,7 +38,7 @@ const PostDetails = () => {
           setComments(Array.isArray(commentsData) ? commentsData : []);
         }
       } catch (err) {
-        toast.error(err.message || "Could not load post details");
+        toast.error(err.message || t("posts.loadFailed") || "Could not load post details");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -47,7 +49,7 @@ const PostDetails = () => {
     return () => {
       isMounted = false;
     };
-  }, [postId]);
+  }, [postId, t]);
 
   const handleAddComment = async (e) => {
     e?.preventDefault();
@@ -94,7 +96,7 @@ const PostDetails = () => {
       setPost((p) =>
         p ? { ...p, comments_count: Math.max(0, (p.comments_count || 1) - 1) } : p
       );
-      toast.error(err.message || "Failed to post comment");
+      toast.error(err.message || t("posts.commentFailed") || "Failed to post comment");
     } finally {
       setIsSubmitting(false);
     }
@@ -107,15 +109,15 @@ const PostDetails = () => {
       setPost((p) =>
         p ? { ...p, comments_count: Math.max(0, (p.comments_count || 1) - 1) } : p
       );
-      toast.success("Comment deleted");
+      toast.success(t("posts.commentDeleted") || "Comment deleted");
     } catch (err) {
-      toast.error(err.message || "Failed to delete comment");
+      toast.error(err.message || t("posts.commentDeleteFailed") || "Failed to delete comment");
     }
   };
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center">
+      <div className="w-full min-h-screen flex items-center justify-center bg-app-page text-app">
         <Loading />
       </div>
     );
@@ -123,42 +125,49 @@ const PostDetails = () => {
 
   if (!post) {
     return (
-      <div className="p-8 text-center text-white">
-        <h2 className="text-xl font-bold mb-4">Post not found</h2>
+      <div className="p-8 text-center text-app bg-app-page min-h-screen flex flex-col items-center justify-center">
+        <h2 className="text-xl font-bold mb-4">
+          {t("posts.notFound") || "Post not found"}
+        </h2>
         <button
           onClick={() => navigate("/")}
-          className="px-5 py-2 rounded-full bg-linear-to-r from-indigo-500 to-purple-600 text-sm font-semibold"
+          className="px-5 py-2 rounded-full bg-linear-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold cursor-pointer"
         >
-          Return Home
+          {t("common.back") || "Return Home"}
         </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full py-8 px-4 flex flex-col items-center bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white pb-32">
+    <div className="min-h-full py-8 px-4 flex flex-col items-center bg-app-page text-app pb-32">
       {/* Top Header Bar */}
       <div className="w-full max-w-2xl flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-purple-500/20 text-white cursor-pointer"
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-app text-app cursor-pointer"
+          aria-label="Go back"
         >
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
-          Post Details
+          {t("posts.postDetails") || "Post Details"}
         </h1>
       </div>
 
       {/* The PostCard */}
       <div className="w-full max-w-2xl mb-8">
-        <PostCard post={post} />
+        <PostCard
+          post={post}
+          onDeleted={() => navigate(-1)}
+          onUpdated={(updated) => setPost(updated)}
+        />
       </div>
 
       {/* Comments Section */}
-      <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-6 shadow-[0_0_30px_rgba(131,58,180,0.3)]">
-        <h2 className="text-lg font-bold text-white mb-6 flex items-center justify-between pb-3 border-b border-purple-500/20">
-          <span>التعليقات 💬</span>
+      <div className="w-full max-w-2xl bg-app-card backdrop-blur-xl border border-app rounded-3xl p-6 shadow-app-glow">
+        <h2 className="text-lg font-bold text-app mb-6 flex items-center justify-between pb-3 border-b border-app">
+          <span>{t("posts.comments") || "Comments"} 💬</span>
           <span className="text-xs px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
             {comments.length}
           </span>
@@ -167,8 +176,8 @@ const PostDetails = () => {
         {/* Comments List */}
         <div className="space-y-4 max-h-[480px] overflow-y-auto no-scrollbar pr-1 mb-6">
           {comments.length === 0 ? (
-            <p className="text-sm text-purple-300/60 text-center py-6">
-              كن أول من يترك تعليقاً على هذا المنشور!
+            <p className="text-sm text-app-muted text-center py-6">
+              {t("posts.noComments") || "Be the first to leave a comment on this post!"}
             </p>
           ) : (
             comments.map((comment) => {
@@ -178,7 +187,7 @@ const PostDetails = () => {
               return (
                 <div
                   key={comment._id}
-                  className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-purple-500/10 hover:border-purple-500/30 transition-all"
+                  className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-app hover:border-purple-400/40 transition-all"
                 >
                   <Avatar
                     src={comment.user?.profile_picture}
@@ -197,11 +206,11 @@ const PostDetails = () => {
                             comment.user?._id &&
                             navigate(`/profile/${comment.user._id}`)
                           }
-                          className="font-semibold text-xs text-white hover:text-indigo-300 transition-colors cursor-pointer"
+                          className="font-semibold text-xs text-app hover:text-indigo-400 transition-colors cursor-pointer"
                         >
                           {comment.user?.full_name || "User"}
                         </span>
-                        <span className="text-[11px] text-gray-400">
+                        <span className="text-[11px] text-app-muted">
                           @{comment.user?.username || "user"}
                         </span>
                       </div>
@@ -213,8 +222,8 @@ const PostDetails = () => {
                         {(isAuthor || isPostOwner) && (
                           <button
                             onClick={() => handleDeleteComment(comment._id)}
-                            className="text-gray-500 hover:text-rose-400 p-1 transition-colors cursor-pointer"
-                            title="Delete comment"
+                            className="text-app-muted hover:text-rose-400 p-1 transition-colors cursor-pointer"
+                            title={t("posts.deleteComment") || "Delete comment"}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -222,7 +231,7 @@ const PostDetails = () => {
                       </div>
                     </div>
 
-                    <p className="text-sm text-purple-100 mt-1 whitespace-pre-line leading-relaxed">
+                    <p className="text-sm text-app mt-1 whitespace-pre-line leading-relaxed">
                       {comment.text}
                     </p>
                   </div>
@@ -236,15 +245,14 @@ const PostDetails = () => {
         {/* Comment Input */}
         <form
           onSubmit={handleAddComment}
-          className="flex items-center gap-2 pt-2 border-t border-purple-500/20"
+          className="flex items-center gap-2 pt-2 border-t border-app"
         >
           <input
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="أضف تعليقك..."
-            className="flex-1 py-3 px-5 text-sm rounded-full bg-[#0f172a]/80 text-white placeholder-purple-300/50 border border-purple-500/30 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all text-right"
-            dir="rtl"
+            placeholder={t("posts.addCommentPlaceholder") || "Add a comment..."}
+            className="flex-1 py-3 px-5 text-sm rounded-full bg-app-input text-app placeholder-app-muted border border-app focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
             maxLength={500}
           />
           <button

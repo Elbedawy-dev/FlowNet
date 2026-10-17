@@ -10,17 +10,22 @@ import {
   Layers,
   UserSquare,
 } from 'lucide-react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { UserButton, useClerk } from '@clerk/clerk-react';
+import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 
 const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
   const { signOut } = useClerk();
+  const { t } = useLanguage();
+  const { isDark } = useTheme();
+  const location = useLocation();
 
   const getNavLinkClass = ({ isActive }) =>
-    `p-2.5 rounded-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center ${
+    `w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 shrink-0 ${
       isActive
-        ? 'bg-purple-600/30 ring-2 ring-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.8)]'
-        : 'hover:bg-white/5 hover:shadow-[0_0_20px_rgba(0,255,255,0.6)]'
+        ? 'bg-purple-700/40 ring-1 ring-purple-400/60 shadow-[0_0_20px_rgba(168,85,247,0.7)] text-white'
+        : 'hover:bg-white/10 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] text-gray-400'
     }`;
 
   const handleNavClick = () => {
@@ -32,42 +37,92 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
   return (
     <>
       <div
-        className={`h-screen w-20 fixed top-0 left-0 z-40 flex flex-col items-center py-6 bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] backdrop-blur-xl shadow-[0_0_30px_rgba(131,58,180,0.6)] border-r border-purple-500/20 transform transition-transform duration-300 ${
+        className={`h-screen w-20 fixed top-0 left-0 z-40 flex flex-col items-center px-3 py-6 bg-app-sidebar backdrop-blur-xl shadow-app-glow border-r border-app transform transition-transform duration-300 ${
           sideBarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'
         }`}
       >
         {/* Navigation Icons */}
-        <div className="flex flex-col space-y-4 overflow-y-auto no-scrollbar py-2">
-          <NavLink to="/" end onClick={handleNavClick} className={getNavLinkClass} title="Home">
+        <div className="flex flex-col items-center space-y-3 overflow-y-auto overflow-x-visible no-scrollbar py-2 px-1 w-full">
+          <NavLink
+            to="/"
+            end
+            onClick={handleNavClick}
+            className={getNavLinkClass}
+            title={t('sidebar.home')}
+          >
             <Home size={22} className="text-indigo-400 hover:text-indigo-300" />
           </NavLink>
 
-          <NavLink to="/search" onClick={handleNavClick} className={getNavLinkClass} title="Discover People">
+          <NavLink
+            to="/search"
+            onClick={handleNavClick}
+            className={getNavLinkClass}
+            title={t('sidebar.search')}
+          >
             <Search size={22} className="text-pink-400 hover:text-pink-300" />
           </NavLink>
 
-          <NavLink to="/messages" onClick={handleNavClick} className={getNavLinkClass} title="Messages">
+          <NavLink
+            to="/messages"
+            onClick={handleNavClick}
+            className={({ isActive }) =>
+              getNavLinkClass({
+                isActive: isActive || location.pathname.startsWith('/messages'),
+              })
+            }
+            title={t('sidebar.messages')}
+          >
             <MessageCircle size={22} className="text-yellow-400 hover:text-yellow-300" />
           </NavLink>
 
-          <NavLink to="/profile" end onClick={handleNavClick} className={getNavLinkClass} title="Profile">
+          <NavLink
+            to="/profile"
+            onClick={handleNavClick}
+            className={({ isActive }) =>
+              getNavLinkClass({
+                isActive: isActive || location.pathname.startsWith('/profile'),
+              })
+            }
+            title={t('sidebar.profile')}
+          >
             <User size={22} className="text-cyan-400 hover:text-cyan-300" />
           </NavLink>
 
-          <NavLink to="/settings" onClick={handleNavClick} className={getNavLinkClass} title="Settings">
+          <NavLink
+            to="/settings"
+            onClick={handleNavClick}
+            className={getNavLinkClass}
+            title={t('sidebar.settings')}
+          >
             <Settings size={22} className="text-purple-400 hover:text-purple-300" />
           </NavLink>
 
-          <NavLink to="/connections" onClick={handleNavClick} className={getNavLinkClass} title="Connections">
+          <NavLink
+            to="/connections"
+            onClick={handleNavClick}
+            className={getNavLinkClass}
+            title={t('sidebar.connections')}
+          >
             <Users size={22} className="text-green-400 hover:text-green-300" />
           </NavLink>
 
           {/* Missing icons added after Connections */}
-          <NavLink to="/groups" end onClick={handleNavClick} className={getNavLinkClass} title="Available Groups">
+          <NavLink
+            to="/groups"
+            end
+            onClick={handleNavClick}
+            className={getNavLinkClass}
+            title={t('sidebar.availableGroups')}
+          >
             <Layers size={22} className="text-orange-400 hover:text-orange-300" />
           </NavLink>
 
-          <NavLink to="/groups/joined" onClick={handleNavClick} className={getNavLinkClass} title="Joined Groups">
+          <NavLink
+            to="/groups/joined"
+            onClick={handleNavClick}
+            className={getNavLinkClass}
+            title={t('sidebar.joinedGroups')}
+          >
             <UserSquare size={22} className="text-teal-400 hover:text-teal-300" />
           </NavLink>
         </div>
@@ -76,29 +131,34 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
         <Link
           to="/create-post"
           onClick={handleNavClick}
-          className="flex items-center justify-center py-2.5 my-4 w-11 h-11 bg-linear-to-br from-indigo-500 to-purple-600 rounded-full hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition-all shadow-[0_0_20px_rgba(168,85,247,0.7)]"
-          title="Create Post"
+          className="flex items-center justify-center my-4 w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-600 rounded-2xl hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition-all shadow-[0_0_20px_rgba(168,85,247,0.7)] shrink-0"
+          title={t('sidebar.createPost')}
         >
           <CirclePlus size={22} className="text-white" />
         </Link>
 
         {/* User Actions: Clerk UserButton + LogOut */}
-        <div className="mt-auto flex flex-col items-center gap-4 pt-2">
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonAvatarBox:
-                  'w-10 h-10 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.7)] border border-purple-400',
-              },
-            }}
-          />
+        <div className="mt-auto flex flex-col items-center gap-4 pt-2 shrink-0">
+          <div className="w-10 h-10 flex items-center justify-center">
+            <UserButton
+              appearance={{
+                baseTheme: isDark ? 'dark' : undefined,
+                elements: {
+                  userButtonAvatarBox:
+                    'w-10 h-10 rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.5)] border border-purple-400',
+                },
+              }}
+            />
+          </div>
           <button
             onClick={() => signOut()}
-            title="Sign out"
-            aria-label="Sign out"
-            className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-rose-400 transition cursor-pointer shadow-[0_0_15px_rgba(255,0,255,0.5)] hover:shadow-[0_0_25px_rgba(244,63,94,0.8)] rounded-full p-1 bg-white/5 border border-purple-500/20"
+            title={t('sidebar.logout')}
+            aria-label={t('sidebar.logout')}
+            className="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-rose-400 transition cursor-pointer shadow-[0_0_15px_rgba(255,0,255,0.4)] hover:shadow-[0_0_25px_rgba(244,63,94,0.8)] rounded-2xl p-1 bg-white/5 border border-purple-500/20 active:scale-95"
           >
-            <LogOut size={16} />
+            <span className="inline-block transform scale-x-[-1]">
+              <LogOut size={16} />
+            </span>
           </button>
         </div>
       </div>

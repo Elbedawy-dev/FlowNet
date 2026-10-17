@@ -90,6 +90,7 @@ export const connectionsApi = {
 
 export const postsApi = {
   create: (data) => api.post('/posts', data),
+  update: (id, data) => api.put(`/posts/${id}`, data),
   getFeed: (scope = 'global', cursor = null, limit = 20) =>
     api.get('/posts/feed', { params: { scope, cursor, limit } }),
   getById: (id) => api.get(`/posts/${id}`),
@@ -103,6 +104,7 @@ export const postsApi = {
 
 export const storiesApi = {
   create: (data) => api.post('/stories', data),
+  update: (id, data) => api.put(`/stories/${id}`, data),
   getAll: () => api.get('/stories'),
   view: (id) => api.post(`/stories/${id}/view`),
   delete: (id) => api.delete(`/stories/${id}`),

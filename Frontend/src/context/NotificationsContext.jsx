@@ -31,6 +31,13 @@ export const NotificationsProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUnreadCount();
+
+    const handleFocus = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [fetchUnreadCount]);
 
   // Listen to realtime notification events

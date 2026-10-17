@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createPost,
+  updatePost,
   getFeed,
   getPostById,
   deletePost,
@@ -10,6 +11,7 @@ import {
   addComment,
   deleteComment,
   createPostSchema,
+  updatePostSchema,
   createCommentSchema,
 } from '../controllers/post.controller.js';
 import { requireAuth } from '../middlewares/auth.js';
@@ -28,6 +30,7 @@ router.get('/feed', getFeed);
 
 // Single post operations
 router.get('/:id', getPostById);
+router.put('/:id', uploadLimiter, uploadPostImages, validate({ body: updatePostSchema }), updatePost);
 router.delete('/:id', deletePost);
 router.post('/:id/like', toggleLike);
 router.post('/:id/share', sharePost);

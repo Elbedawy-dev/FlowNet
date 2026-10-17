@@ -8,12 +8,14 @@ import { useCurrentUser } from "../context/CurrentUserContext";
 import { useSocket } from "../context/SocketContext";
 import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
+import { useLanguage } from "../context/LanguageContext";
 
 const Chat = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
   const { socket } = useSocket();
+  const { t } = useLanguage();
 
   const [messages, setMessages] = useState([]);
   const [otherUser, setOtherUser] = useState(null);
@@ -203,22 +205,22 @@ const Chat = () => {
   // IF BLOCKED BY THEM: Show Arabic blocked notice
   if (blockedByThem) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-6 text-center bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f]">
-        <div className="w-full max-w-lg p-8 rounded-3xl bg-linear-to-b from-purple-900/40 via-pink-900/30 to-indigo-950/60 border border-pink-500/30 shadow-[0_0_40px_rgba(236,72,153,0.35)] backdrop-blur-xl">
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-full max-w-lg p-8 rounded-3xl bg-app-card border border-pink-500/30 shadow-[0_0_40px_rgba(236,72,153,0.35)] backdrop-blur-xl">
           <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-pink-500/20 border border-pink-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(236,72,153,0.4)]">
             <span className="text-3xl">😢</span>
           </div>
-          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 mb-4" dir="rtl">
-            لقد قام هذا المستخدم بحظرك 😢
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 mb-4">
+            {t("messages.blockedTitle")}
           </h2>
-          <p className="text-base text-purple-200/90 leading-relaxed mb-6 font-medium" dir="rtl">
-            ✨💔 للأسف لا يمكنك مراسلته، ربما في المستقبل سيكون هناك فرصة للتواصل
+          <p className="text-base text-app-muted leading-relaxed mb-6 font-medium">
+            {t("messages.blockedDesc")}
           </p>
           <button
             onClick={() => navigate("/messages")}
             className="px-6 py-2.5 rounded-full bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm font-semibold shadow-lg transition-all active:scale-95 cursor-pointer"
           >
-            العودة للرسائل
+            {t("sidebar.messages")}
           </button>
         </div>
       </div>
@@ -226,13 +228,14 @@ const Chat = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-linear-to-b from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] text-white relative">
+    <div className="h-full flex flex-col text-app relative">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-[#0b0f3b]/80 backdrop-blur-xl border-b border-purple-500/20 shadow-md">
+      <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-app-card/85 backdrop-blur-xl border-b border-app shadow-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/messages")}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all cursor-pointer"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-app-muted hover:text-app transition-all cursor-pointer"
+            title={t("common.back")}
           >
             <ArrowLeft size={18} />
           </button>
@@ -247,10 +250,10 @@ const Chat = () => {
               size="md"
             />
             <div>
-              <h3 className="font-bold text-sm text-white group-hover:text-indigo-300 transition-colors">
+              <h3 className="font-bold text-sm text-app group-hover:text-indigo-400 transition-colors">
                 {otherUser?.full_name || "User"}
               </h3>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-app-muted">
                 @{otherUser?.username || "user"}
               </p>
             </div>
@@ -263,13 +266,13 @@ const Chat = () => {
         <div className="bg-rose-950/80 border-b border-rose-500/30 px-4 py-2.5 flex items-center justify-between text-xs text-rose-200 backdrop-blur-md z-20">
           <div className="flex items-center gap-2">
             <ShieldAlert size={16} className="text-rose-400" />
-            <span>You have blocked this user. Unblock them to resume chatting.</span>
+            <span>{t("messages.blockedByMeTitle")}</span>
           </div>
           <button
             onClick={handleUnblockUser}
             className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold transition active:scale-95 cursor-pointer"
           >
-            Unblock
+            {t("messages.unblock")}
           </button>
         </div>
       )}
@@ -330,7 +333,7 @@ const Chat = () => {
                     className={`max-w-[78%] sm:max-w-[65%] rounded-3xl p-3.5 shadow-md ${
                       isMe
                         ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white rounded-br-xs shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                        : "bg-[#182034] text-purple-100 rounded-bl-xs border border-purple-500/15"
+                        : "bg-app-card text-app rounded-bl-xs border border-app"
                     }`}
                   >
                     {/* Media attachment */}
@@ -355,7 +358,7 @@ const Chat = () => {
                     {/* Timestamp & seen indicator */}
                     <div
                       className={`flex items-center gap-1 text-[10px] mt-1 ${
-                        isMe ? "text-purple-200 justify-end" : "text-gray-400 justify-start"
+                        isMe ? "text-purple-200 justify-end" : "text-app-muted justify-start"
                       }`}
                     >
                       <span>{moment(msg.createdAt).format("h:mm A")}</span>
@@ -389,7 +392,7 @@ const Chat = () => {
 
       {/* Image Preview Chip */}
       {imagePreview && (
-        <div className="px-4 py-2 bg-[#0f172a]/90 border-t border-purple-500/20 flex items-center gap-3">
+        <div className="px-4 py-2 bg-app-card border-t border-app flex items-center gap-3">
           <div className="relative">
             <img
               src={imagePreview}
@@ -411,9 +414,9 @@ const Chat = () => {
       {!blockedByThem && (
         <form
           onSubmit={handleSendMessage}
-          className="p-3 bg-[#0b0f3b]/90 backdrop-blur-md border-t border-purple-500/20 flex items-center gap-2"
+          className="p-3 bg-app-card/90 backdrop-blur-md border-t border-app flex items-center gap-2"
         >
-          <label className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-purple-300 hover:text-white transition cursor-pointer border border-purple-500/20">
+          <label className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-purple-300 hover:text-white transition cursor-pointer border border-app">
             <ImageIcon size={19} />
             <input
               type="file"
@@ -427,9 +430,9 @@ const Chat = () => {
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={t("messages.typeMessage")}
             disabled={blockedByMe}
-            className="flex-1 py-3 px-5 text-sm rounded-full bg-[#182034] text-white placeholder-purple-300/40 border border-purple-500/25 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
+            className="flex-1 py-3 px-5 text-sm rounded-full bg-app-input text-app placeholder-app-muted border border-app focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
           />
 
           <button

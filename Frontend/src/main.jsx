@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { ClerkProvider } from '@clerk/clerk-react';
 import './index.css';
 import App from './App.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
+import { LanguageProvider } from './context/LanguageContext.jsx';
 import { CurrentUserProvider } from './context/CurrentUserContext.jsx';
 import { SocketProvider } from './context/SocketContext.jsx';
 import { NotificationsProvider } from './context/NotificationsContext.jsx';
@@ -18,13 +20,17 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <BrowserRouter>
-        <CurrentUserProvider>
-          <SocketProvider>
-            <NotificationsProvider>
-              <App />
-            </NotificationsProvider>
-          </SocketProvider>
-        </CurrentUserProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <CurrentUserProvider>
+              <SocketProvider>
+                <NotificationsProvider>
+                  <App />
+                </NotificationsProvider>
+              </SocketProvider>
+            </CurrentUserProvider>
+          </LanguageProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </ClerkProvider>
   </StrictMode>
