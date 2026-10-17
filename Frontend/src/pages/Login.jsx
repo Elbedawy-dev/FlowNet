@@ -17,41 +17,33 @@ const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
 
   const clerkAppearance = {
-    baseTheme: "dark",
-    variables: {
-      colorPrimary: "#a78bfa",
-      colorText: "#e5e7eb",
-      colorBackground: "transparent",
-      colorInputBackground: "rgba(15, 23, 42, 0.6)",
-      colorCardBackground: "rgba(24,32,52,0.6)",
-    },
     elements: {
       rootBox: "w-full max-w-full min-w-0",
       cardBox: "w-full max-w-full min-w-0 shadow-none",
-      card: "w-full max-w-full min-w-0 rounded-3xl shadow-[0_0_25px_rgba(168,85,247,0.5)] border border-purple-500/20 backdrop-blur-xl",
+      card: "w-full max-w-full min-w-0 rounded-3xl shadow-none border-0 bg-transparent",
       main: "w-full max-w-full min-w-0",
       headerTitle:
-        "text-transparent bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-xl sm:text-2xl font-bold break-words",
-      headerSubtitle: "text-gray-400 break-words text-xs sm:text-sm",
+        "text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-xl sm:text-2xl font-bold break-words",
+      headerSubtitle: "text-app-muted break-words text-xs sm:text-sm",
       socialButtons: "w-full",
       socialButtonsBlockButton:
         "w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl hover:scale-[1.02] transition-all",
       form: "w-full",
       formFieldInput:
-        "w-full bg-[#1f264f]/60 border border-purple-500/30 rounded-xl text-white focus:ring-2 focus:ring-purple-500",
+        "w-full bg-app-input border border-app rounded-xl text-app focus:ring-2 focus:ring-purple-500",
       formButtonPrimary:
         "w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 text-white font-semibold py-2.5 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.6)] hover:scale-[1.02] transition-all",
       footer: "w-full text-center text-xs mt-3",
-      footerAction: "text-gray-400",
-      footerActionLink: "text-purple-400 hover:text-pink-400 font-semibold transition ml-1",
+      footerAction: "text-app-muted",
+      footerActionLink: "text-purple-600 dark:text-purple-400 hover:text-pink-500 font-semibold transition ml-1",
     },
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col lg:flex-row bg-linear-to-br from-[#0b0f3b] via-[#1a1f4d] to-[#3c1f7f] overflow-hidden">
+    <div className="relative min-h-screen flex flex-col lg:flex-row bg-app-page text-app overflow-hidden">
       <div className="absolute inset-0 -z-10">
-        <div className="absolute w-150 h-150 bg-purple-600/20 rounded-full -top-25 -left-25 blur-3xl animate-pulse-slow" />
-        <div className="absolute w-125 h-125 bg-pink-500/20 rounded-full -bottom-25 -right-25 blur-3xl animate-pulse-slow" />
+        <div className="absolute w-150 h-150 bg-purple-600/15 rounded-full -top-25 -left-25 blur-3xl animate-pulse-slow" />
+        <div className="absolute w-125 h-125 bg-pink-500/15 rounded-full -bottom-25 -right-25 blur-3xl animate-pulse-slow" />
       </div>
 
       <div className="flex-1 w-full min-w-0 flex flex-col items-start justify-between lg:p-40 p-6 md:p-10 z-10">
@@ -80,14 +72,14 @@ const Login = () => {
                   ))}
               </div>
 
-              <p className="text-gray-300 text-sm mt-1">
+              <p className="text-app-muted text-sm mt-1">
                 17,000+ adventurers already inside
               </p>
             </div>
           </div>
 
           <motion.h1
-            className="text-3xl md:text-6xl font-bold bg-linear-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(255,0,255,0.7)] leading-tight"
+            className="text-3xl md:text-6xl font-bold bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(255,0,255,0.7)] leading-tight"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 1 }}
@@ -96,7 +88,7 @@ const Login = () => {
           </motion.h1>
 
           <motion.p
-            className="text-gray-400 mt-4 md:mt-6 max-w-lg text-lg leading-relaxed"
+            className="text-app-muted mt-4 md:mt-6 max-w-lg text-lg leading-relaxed"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 1 }}
@@ -110,13 +102,13 @@ const Login = () => {
 
       <div className="flex-1 w-full min-w-0 flex flex-col items-center justify-center p-4 sm:p-6 md:p-10 z-10 overflow-x-hidden">
         {/* Toggle Bar */}
-        <div className="flex items-center gap-2 mb-4 bg-white/5 border border-purple-500/30 p-1.5 rounded-2xl backdrop-blur-md shadow-lg">
+        <div className="flex items-center gap-2 mb-4 bg-app-card border border-app p-1.5 rounded-2xl backdrop-blur-md shadow-app-glow">
           <button
             onClick={() => setIsSignUp(false)}
             className={`px-5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               !isSignUp
                 ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
-                : "text-purple-300 hover:text-white"
+                : "text-app-muted hover:text-app"
             }`}
           >
             Sign In
@@ -126,7 +118,7 @@ const Login = () => {
             className={`px-5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               isSignUp
                 ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
-                : "text-purple-300 hover:text-white"
+                : "text-app-muted hover:text-app"
             }`}
           >
             Create Account
@@ -134,7 +126,7 @@ const Login = () => {
         </div>
 
         <motion.div
-          className="w-full max-w-md min-w-0 overflow-hidden p-4 sm:p-6 md:p-8 rounded-3xl bg-linear-to-br from-purple-700/20 via-indigo-800/20 to-pink-700/20 backdrop-blur-md shadow-[0_0_30px_rgba(131,58,180,0.5)] border border-white/10"
+          className="w-full max-w-md min-w-0 overflow-hidden p-4 sm:p-6 md:p-8 rounded-3xl bg-surface-glass backdrop-blur-xl shadow-app-glow border border-app"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}

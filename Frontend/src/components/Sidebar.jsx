@@ -24,8 +24,8 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
   const getNavLinkClass = ({ isActive }) =>
     `w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 shrink-0 ${
       isActive
-        ? 'bg-purple-700/40 ring-1 ring-purple-400/60 shadow-[0_0_20px_rgba(168,85,247,0.7)] text-white'
-        : 'hover:bg-white/10 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] text-gray-400'
+        ? 'bg-purple-100 dark:bg-purple-700/40 ring-1 ring-purple-300 dark:ring-purple-400/60 shadow-md text-purple-700 dark:text-white'
+        : 'hover:bg-purple-500/10 text-app-muted hover:text-app'
     }`;
 
   const handleNavClick = () => {
@@ -50,7 +50,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             className={getNavLinkClass}
             title={t('sidebar.home')}
           >
-            <Home size={22} className="text-indigo-400 hover:text-indigo-300" />
+            <Home size={22} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300" />
           </NavLink>
 
           <NavLink
@@ -59,7 +59,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             className={getNavLinkClass}
             title={t('sidebar.search')}
           >
-            <Search size={22} className="text-pink-400 hover:text-pink-300" />
+            <Search size={22} className="text-pink-600 dark:text-pink-400 hover:text-pink-500 dark:hover:text-pink-300" />
           </NavLink>
 
           <NavLink
@@ -72,7 +72,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             }
             title={t('sidebar.messages')}
           >
-            <MessageCircle size={22} className="text-yellow-400 hover:text-yellow-300" />
+            <MessageCircle size={22} className="text-amber-600 dark:text-yellow-400 hover:text-amber-500 dark:hover:text-yellow-300" />
           </NavLink>
 
           <NavLink
@@ -85,7 +85,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             }
             title={t('sidebar.profile')}
           >
-            <User size={22} className="text-cyan-400 hover:text-cyan-300" />
+            <User size={22} className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300" />
           </NavLink>
 
           <NavLink
@@ -94,7 +94,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             className={getNavLinkClass}
             title={t('sidebar.settings')}
           >
-            <Settings size={22} className="text-purple-400 hover:text-purple-300" />
+            <Settings size={22} className="text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300" />
           </NavLink>
 
           <NavLink
@@ -103,7 +103,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             className={getNavLinkClass}
             title={t('sidebar.connections')}
           >
-            <Users size={22} className="text-green-400 hover:text-green-300" />
+            <Users size={22} className="text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300" />
           </NavLink>
 
           {/* Missing icons added after Connections */}
@@ -114,7 +114,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             className={getNavLinkClass}
             title={t('sidebar.availableGroups')}
           >
-            <Layers size={22} className="text-orange-400 hover:text-orange-300" />
+            <Layers size={22} className="text-orange-600 dark:text-orange-400 hover:text-orange-500 dark:hover:text-orange-300" />
           </NavLink>
 
           <NavLink
@@ -123,7 +123,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             className={getNavLinkClass}
             title={t('sidebar.joinedGroups')}
           >
-            <UserSquare size={22} className="text-teal-400 hover:text-teal-300" />
+            <UserSquare size={22} className="text-teal-600 dark:text-teal-400 hover:text-teal-500 dark:hover:text-teal-300" />
           </NavLink>
         </div>
 
@@ -154,7 +154,7 @@ const Sidebar = ({ sideBarOpen, setSideBarOpen }) => {
             onClick={() => signOut()}
             title={t('sidebar.logout')}
             aria-label={t('sidebar.logout')}
-            className="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-rose-400 transition cursor-pointer shadow-[0_0_15px_rgba(255,0,255,0.4)] hover:shadow-[0_0_25px_rgba(244,63,94,0.8)] rounded-2xl p-1 bg-white/5 border border-purple-500/20 active:scale-95"
+            className="w-10 h-10 flex items-center justify-center text-app-muted hover:text-rose-500 transition cursor-pointer shadow-sm hover:shadow-[0_0_20px_rgba(244,63,94,0.5)] rounded-2xl p-1 bg-surface border border-app active:scale-95"
           >
             <span className="inline-block transform scale-x-[-1]">
               <LogOut size={16} />

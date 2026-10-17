@@ -1,4 +1,5 @@
 import React from 'react';
+import { Zap } from 'lucide-react';
 
 const Logo = ({
   className = '',
@@ -13,7 +14,7 @@ const Logo = ({
   return (
     <div
       onClick={onClick}
-      className={`${baseDisplay} items-center gap-2.5 select-none ${
+      className={`${baseDisplay} items-center gap-2 select-none ${
         onClick ? 'cursor-pointer' : ''
       } ${className}`.trim()}
     >
@@ -50,6 +51,7 @@ const Logo = ({
           FlowNet
         </span>
       )}
+      <Zap className="w-5 h-5 text-amber-400 fill-amber-400 shrink-0 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
     </div>
   );
 };

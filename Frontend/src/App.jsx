@@ -25,6 +25,8 @@ import { useLanguage } from "./context/LanguageContext.jsx";
 
 function App() {
   const { user } = useUser();
+  const isMock = Boolean(import.meta.env.DEV && typeof window !== 'undefined' && localStorage.getItem('test_mock_user') === 'true');
+  const activeUser = user || (isMock ? { id: 'mock_test_user' } : null);
   const { currentUser } = useCurrentUser();
   const { setPalette, setMode } = useTheme();
   const { setLang } = useLanguage();
@@ -38,7 +40,7 @@ function App() {
     }
   }, [currentUser, setPalette, setMode, setLang]);
 
-  if (!user) {
+  if (!activeUser) {
     return (
       <>
         <Toaster />

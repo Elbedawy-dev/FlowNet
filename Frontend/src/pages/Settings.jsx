@@ -251,8 +251,8 @@ const Settings = () => {
           {t('settings.subtitle') || 'Customize your experience, privacy, and preferences'}
         </p>
 
-        {/* Pill Tabs: Grid 2-cols on Mobile, Flex on md+ */}
-        <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:justify-center mt-6 p-1.5 bg-app-card backdrop-blur border border-app rounded-2xl shadow-inner w-full max-w-2xl">
+        {/* Pill Tabs: Shrink-to-fit Container */}
+        <div id="settings-tabs-container" className="inline-flex w-fit max-w-full mx-auto gap-1 p-1.5 rounded-2xl bg-app-card backdrop-blur border border-app shadow-inner overflow-x-auto no-scrollbar mt-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -261,20 +261,18 @@ const Settings = () => {
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 cursor-pointer h-11 ${
-                  tab.key === 'danger' ? 'col-span-2 md:col-span-1' : ''
-                } ${
+                className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
                     ? tab.danger
                       ? 'bg-linear-to-r from-red-600 to-rose-700 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]'
                       : 'bg-linear-to-r from-indigo-500 via-purple-600 to-pink-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
                     : tab.danger
-                    ? 'text-rose-400 hover:bg-rose-500/10'
-                    : 'text-app-muted hover:text-app hover:bg-white/5'
+                    ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-500/10'
+                    : 'text-app-muted hover:text-app hover:bg-purple-500/10'
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{tab.label}</span>
+                <span>{tab.label}</span>
               </button>
             );
           })}
