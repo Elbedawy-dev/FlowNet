@@ -5,7 +5,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import { messagesApi, usersApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocketEvent } from "../context/SocketContext";
 import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
 import { useLanguage } from "../context/LanguageContext";
@@ -14,7 +14,6 @@ const Chat = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
-  const { socket } = useSocket();
   const { t } = useLanguage();
 
   const [messages, setMessages] = useState([]);
@@ -62,11 +61,9 @@ const Chat = () => {
     fetchConversation();
   }, [fetchConversation]);
 
-  // Real-time socket message:new and message:seen
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewMessage = (msg) => {
+  // Real-time Ably message:new and message:seen
+  const handleNewMessage = useCallback(
+    (msg) => {
       // Check if message belongs to this conversation
       const isFromTarget = msg.from_user_id === userId && msg.to_user_id === currentUser?._id;
       const isFromMe = msg.from_user_id === currentUser?._id && msg.to_user_id === userId;
@@ -84,9 +81,12 @@ const Chat = () => {
           messagesApi.markSeen(userId).catch(() => {});
         }
       }
-    };
+    },
+    [userId, currentUser?._id]
+  );
 
-    const handleMessageSeen = (data) => {
+  const handleMessageSeen = useCallback(
+    (data) => {
       if (data.seen_by === userId) {
         setMessages((prev) =>
           prev.map((m) =>
@@ -94,16 +94,12 @@ const Chat = () => {
           )
         );
       }
-    };
+    },
+    [userId, currentUser?._id]
+  );
 
-    socket.on("message:new", handleNewMessage);
-    socket.on("message:seen", handleMessageSeen);
-
-    return () => {
-      socket.off("message:new", handleNewMessage);
-      socket.off("message:seen", handleMessageSeen);
-    };
-  }, [socket, userId, currentUser?._id]);
+  useSocketEvent("message:new", handleNewMessage);
+  useSocketEvent("message:seen", handleMessageSeen);
 
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];

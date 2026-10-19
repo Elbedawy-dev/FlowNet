@@ -10,6 +10,7 @@ import EmptyState from "../components/EmptyState";
 import NotificationBadge from "../components/NotificationBadge";
 import { postsApi } from "../api/axios";
 import { useNotifications } from "../context/NotificationsContext";
+import { useSocketEvent } from "../context/SocketContext";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -72,15 +73,42 @@ const Home = () => {
     }
   };
 
-  const handlePostDeleted = (deletedId) => {
+  const handlePostDeleted = useCallback((deletedId) => {
     setPosts((prev) => prev.filter((p) => p._id !== deletedId));
-  };
+  }, []);
 
-  const handlePostUpdated = (updatedPost) => {
+  const handlePostUpdated = useCallback((updatedPost) => {
     setPosts((prev) =>
       prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
     );
-  };
+  }, []);
+
+  useSocketEvent(
+    "post:deleted",
+    useCallback((data) => {
+      const id = data?.postId || data?.id || data;
+      if (id) {
+        handlePostDeleted(id);
+      }
+    }, [handlePostDeleted])
+  );
+
+  useSocketEvent(
+    "post:stats",
+    useCallback((data) => {
+      if (!data?.postId) return;
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id !== data.postId) return p;
+          return {
+            ...p,
+            likes_count: data.likesCount ?? p.likes_count,
+            comments_count: data.commentsCount ?? p.comments_count,
+          };
+        })
+      );
+    }, [])
+  );
 
   return (
     <div className="h-full overflow-y-scroll no-scrollbar py-6 pt-5 sm:pt-6 xl:pr-5 flex flex-col items-center bg-app-page text-app relative pb-32">

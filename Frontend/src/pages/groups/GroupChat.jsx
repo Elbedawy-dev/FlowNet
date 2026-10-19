@@ -29,7 +29,7 @@ import moment from 'moment';
 import toast from 'react-hot-toast';
 import { groupsApi } from '../../api/axios';
 import { useCurrentUser } from '../../context/CurrentUserContext';
-import { useSocket } from '../../context/SocketContext';
+import { useRoom } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import Avatar from '../../components/Avatar';
 import Loading from '../../components/Loading';
@@ -50,7 +50,6 @@ const GroupChat = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
-  const { socket } = useSocket();
   const { t } = useLanguage();
 
   const [group, setGroup] = useState(null);
@@ -165,13 +164,9 @@ const GroupChat = () => {
     }
   }, [group?.is_owner, group?.is_admin, fetchPendingRequests]);
 
-  // 3. Socket: Join group room and listen for real-time events
-  useEffect(() => {
-    if (!socket || !groupId) return;
-
-    socket.emit('group:join', { groupId });
-
-    const handleNewMessage = (newMsg) => {
+  // 3. Ably: Join group room and listen for real-time events
+  const handleNewMessage = useCallback(
+    (newMsg) => {
       if (newMsg.group === groupId || newMsg.group?._id === groupId) {
         setMessages((prev) => {
           // Avoid duplicate messages if already present
@@ -180,23 +175,32 @@ const GroupChat = () => {
         });
         setTimeout(() => scrollToBottom(true), 50);
       }
-    };
+    },
+    [groupId]
+  );
 
-    const handleGroupUpdated = (updated) => {
+  const handleGroupUpdated = useCallback(
+    (updated) => {
       if (updated._id === groupId) {
         setGroup((prev) => (prev ? { ...prev, ...updated } : prev));
         toast.success(t('groups.groupUpdatedSuccess'));
       }
-    };
+    },
+    [groupId, t]
+  );
 
-    const handleGroupDeleted = (data) => {
+  const handleGroupDeleted = useCallback(
+    (data) => {
       if (data.groupId === groupId) {
         toast.error(t('groups.groupDeletedSuccess'));
         navigate('/groups/joined');
       }
-    };
+    },
+    [groupId, navigate, t]
+  );
 
-    const handleMemberJoined = (data) => {
+  const handleMemberJoined = useCallback(
+    (data) => {
       if (data.groupId === groupId) {
         setGroup((prev) =>
           prev
@@ -207,9 +211,12 @@ const GroupChat = () => {
             : prev
         );
       }
-    };
+    },
+    [groupId]
+  );
 
-    const handleMemberLeft = (data) => {
+  const handleMemberLeft = useCallback(
+    (data) => {
       if (data.groupId === groupId) {
         if (data.userId === currentUser?._id) {
           navigate('/groups/joined');
@@ -225,23 +232,17 @@ const GroupChat = () => {
           );
         }
       }
-    };
+    },
+    [groupId, currentUser?._id, navigate]
+  );
 
-    socket.on('group:message', handleNewMessage);
-    socket.on('group:updated', handleGroupUpdated);
-    socket.on('group:deleted', handleGroupDeleted);
-    socket.on('group:member_joined', handleMemberJoined);
-    socket.on('group:member_left', handleMemberLeft);
-
-    return () => {
-      socket.off('group:message', handleNewMessage);
-      socket.off('group:updated', handleGroupUpdated);
-      socket.off('group:deleted', handleGroupDeleted);
-      socket.off('group:member_joined', handleMemberJoined);
-      socket.off('group:member_left', handleMemberLeft);
-      socket.emit('group:leave', { groupId });
-    };
-  }, [socket, groupId, navigate, currentUser?._id, t]);
+  useRoom('group', groupId, {
+    'group:message': handleNewMessage,
+    'group:updated': handleGroupUpdated,
+    'group:deleted': handleGroupDeleted,
+    'group:member_joined': handleMemberJoined,
+    'group:member_left': handleMemberLeft,
+  });
 
   // Request actions
   const handleAcceptRequest = async (userId) => {

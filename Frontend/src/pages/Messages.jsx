@@ -4,7 +4,7 @@ import { MessageCircle, Eye, MessagesSquare, CheckCheck, ImageIcon } from "lucid
 import moment from "moment";
 import { messagesApi, usersApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocketEvent } from "../context/SocketContext";
 import { useLanguage } from "../context/LanguageContext";
 import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
@@ -18,7 +18,6 @@ const Messages = () => {
 
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
-  const { socket } = useSocket();
   const { t, lang } = useLanguage();
 
   const fetchAllData = useCallback(async (isSilent = false) => {
@@ -62,22 +61,13 @@ const Messages = () => {
     }
   }, [currentUser?._id, fetchAllData]);
 
-  // Real-time updates via socket
-  useEffect(() => {
-    if (!socket) return;
+  // Real-time updates via Ably
+  const handleMessageUpdate = useCallback(() => {
+    fetchAllData(true);
+  }, [fetchAllData]);
 
-    const handleMessageUpdate = () => {
-      fetchAllData(true);
-    };
-
-    socket.on("message:new", handleMessageUpdate);
-    socket.on("message:seen", handleMessageUpdate);
-
-    return () => {
-      socket.off("message:new", handleMessageUpdate);
-      socket.off("message:seen", handleMessageUpdate);
-    };
-  }, [socket, fetchAllData]);
+  useSocketEvent("message:new", handleMessageUpdate);
+  useSocketEvent("message:seen", handleMessageUpdate);
 
   // Merge (a) recent conversations with (b) connections without message history
   const mergedConversations = useMemo(() => {

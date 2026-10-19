@@ -4,7 +4,7 @@ import { Bell, Heart, MessageCircle, Image as ImageIcon, Sparkles } from 'lucide
 import moment from 'moment';
 import { notificationsApi } from '../api/axios';
 import { useNotifications } from '../context/NotificationsContext';
-import { useSocket } from '../context/SocketContext';
+import { useSocketEvent } from '../context/SocketContext';
 import { useLanguage } from '../context/LanguageContext';
 import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
@@ -14,7 +14,6 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 const Notifications = () => {
   const navigate = useNavigate();
   const { markAllAsRead, refreshUnreadCount } = useNotifications();
-  const { socket } = useSocket();
   const { t, lang } = useLanguage();
 
   const [filter, setFilter] = useState('all'); // 'all' | 'likes' | 'comments' | 'media'
@@ -62,10 +61,8 @@ const Notifications = () => {
   }, [filter, fetchNotifications]);
 
   // Real-time notification updates
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewNotification = (newNotif) => {
+  const handleNewNotification = useCallback(
+    (newNotif) => {
       let matches = false;
       if (filter === 'all') matches = true;
       else if (filter === 'likes' && newNotif.type === 'like') matches = true;
@@ -80,13 +77,11 @@ const Notifications = () => {
       if (matches) {
         setNotifications((prev) => [newNotif, ...prev]);
       }
-    };
+    },
+    [filter]
+  );
 
-    socket.on('notification:new', handleNewNotification);
-    return () => {
-      socket.off('notification:new', handleNewNotification);
-    };
-  }, [socket, filter]);
+  useSocketEvent('notification:new', handleNewNotification);
 
   // Infinite scroll hook
   const handleLoadMore = useCallback(() => {

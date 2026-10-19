@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, Trash2 } from "lucide-react";
 import moment from "moment";
@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { postsApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useRoom } from "../context/SocketContext";
 import PostCard from "../components/PostCard";
 import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
@@ -50,6 +51,45 @@ const PostDetails = () => {
       isMounted = false;
     };
   }, [postId, t]);
+
+  const handleRealtimeNewComment = useCallback((newC) => {
+    if (!newC?._id) return;
+    setComments((prev) => {
+      if (prev.some((c) => c._id === newC._id)) return prev;
+      return [...prev, newC];
+    });
+    setPost((p) =>
+      p ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p
+    );
+  }, []);
+
+  const handleRealtimeDeleteComment = useCallback((data) => {
+    const commentId = data?.commentId || data?.id || data;
+    if (!commentId) return;
+    setComments((prev) => prev.filter((c) => c._id !== commentId));
+    setPost((p) =>
+      p ? { ...p, comments_count: Math.max(0, (p.comments_count || 1) - 1) } : p
+    );
+  }, []);
+
+  const handleRealtimeStats = useCallback((data) => {
+    if (!data) return;
+    setPost((p) =>
+      p
+        ? {
+            ...p,
+            likes_count: data.likesCount ?? p.likes_count,
+            comments_count: data.commentsCount ?? p.comments_count,
+          }
+        : p
+    );
+  }, []);
+
+  useRoom('post', postId, {
+    'comment:new': handleRealtimeNewComment,
+    'comment:deleted': handleRealtimeDeleteComment,
+    'post:stats': handleRealtimeStats,
+  });
 
   const handleAddComment = async (e) => {
     e?.preventDefault();

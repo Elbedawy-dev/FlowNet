@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { messagesApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocket, useSocketEvent } from "../context/SocketContext";
 import { useLanguage } from "../context/LanguageContext";
 import Avatar from "./Avatar";
 
@@ -14,7 +14,7 @@ const RecentMessages = ({ mobile = false }) => {
   const [loading, setLoading] = useState(true);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const { currentUser } = useCurrentUser();
-  const { socket, isConnected } = useSocket();
+  const { isConnected } = useSocket();
   const { t, lang } = useLanguage();
 
   const fetchRecent = useCallback(async (isSilent = false) => {
@@ -44,20 +44,13 @@ const RecentMessages = ({ mobile = false }) => {
     return () => clearInterval(interval);
   }, [isConnected, currentUser?._id, fetchRecent]);
 
-  // Refresh recent list on new message received via socket
-  useEffect(() => {
-    if (!socket) return;
-    const handleNewMessage = () => {
-      fetchRecent(true);
-    };
-    socket.on("message:new", handleNewMessage);
-    socket.on("message:seen", handleNewMessage);
+  // Refresh recent list on new message received via Ably
+  const handleNewMessage = useCallback(() => {
+    fetchRecent(true);
+  }, [fetchRecent]);
 
-    return () => {
-      socket.off("message:new", handleNewMessage);
-      socket.off("message:seen", handleNewMessage);
-    };
-  }, [socket, fetchRecent]);
+  useSocketEvent("message:new", handleNewMessage);
+  useSocketEvent("message:seen", handleNewMessage);
 
   const unreadCount = messages.filter(
     (item) => !item.seen && item.to_user_id === currentUser?._id
