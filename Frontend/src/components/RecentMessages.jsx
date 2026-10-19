@@ -6,6 +6,7 @@ import { MessageSquare, ChevronDown, ChevronUp, ArrowRight } from "lucide-react"
 import { messagesApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { useSocket } from "../context/SocketContext";
+import { useLanguage } from "../context/LanguageContext";
 import Avatar from "./Avatar";
 
 const RecentMessages = ({ mobile = false }) => {
@@ -14,6 +15,7 @@ const RecentMessages = ({ mobile = false }) => {
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const { currentUser } = useCurrentUser();
   const { socket, isConnected } = useSocket();
+  const { t, lang } = useLanguage();
 
   const fetchRecent = useCallback(async (isSilent = false) => {
     try {
@@ -71,10 +73,10 @@ const RecentMessages = ({ mobile = false }) => {
             <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <MessageSquare size={16} />
             </div>
-            <span className="font-bold text-sm text-app">Messages</span>
+            <span className="font-bold text-sm text-app">{t("messages.title") || "Messages"}</span>
             {unreadCount > 0 ? (
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600 text-white animate-pulse">
-                {unreadCount} new
+                {unreadCount} {t("messages.newBadge") || "new"}
               </span>
             ) : (
               <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-300/30">
@@ -88,8 +90,8 @@ const RecentMessages = ({ mobile = false }) => {
               to="/messages"
               className="text-xs text-purple-600 dark:text-purple-400 font-semibold hover:underline flex items-center gap-0.5"
             >
-              <span>View all</span>
-              <ArrowRight size={12} />
+              <span>{t("messages.viewAll") || "View all"}</span>
+              <ArrowRight size={12} className="rtl:rotate-180" />
             </Link>
             <button
               type="button"
@@ -105,11 +107,11 @@ const RecentMessages = ({ mobile = false }) => {
         {/* Horizontal Avatar Strip (always visible on mobile) */}
         <div className="flex items-center gap-3 px-4 py-2.5 overflow-x-auto no-scrollbar bg-surface-strong/20">
           {loading ? (
-            <div className="py-2 text-xs text-app-muted">Loading messages...</div>
+            <div className="py-2 text-xs text-app-muted">{t("messages.loadingMessages") || "Loading messages..."}</div>
           ) : messages.length === 0 ? (
             <div className="text-xs text-app-muted py-1 flex items-center gap-2">
               <MessageSquare size={14} className="text-purple-400" />
-              <span>No conversations yet</span>
+              <span>{t("messages.emptyTitle") || "No conversations yet"}</span>
             </div>
           ) : (
             messages.map((item, index) => {
@@ -131,7 +133,7 @@ const RecentMessages = ({ mobile = false }) => {
                       ring={isUnread}
                     />
                     {isUnread && (
-                      <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse ring-2 ring-white dark:ring-slate-900" />
+                      <span className="absolute top-0 end-0 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse ring-2 ring-white dark:ring-slate-900" />
                     )}
                   </div>
                   <span className="text-[10px] text-app-muted group-hover:text-app truncate max-w-[54px] text-center">
@@ -205,17 +207,17 @@ const RecentMessages = ({ mobile = false }) => {
     >
       <h3 className="font-bold text-app px-5 py-4 border-b border-app bg-surface-strong/30 backdrop-blur-md flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span>Messages</span>
+          <span>{t("messages.title") || "Messages"}</span>
           {!isConnected && (
             <span
               className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"
-              title="Real-time disconnected (Polling every 15s)"
+              title="Real-time disconnected"
             />
           )}
         </div>
         {unreadCount > 0 ? (
           <span className="text-xs px-2.5 py-0.5 rounded-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-semibold shadow-sm">
-            {unreadCount} unread
+            {unreadCount} {t("messages.unread") || "unread"}
           </span>
         ) : (
           <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-300/30">
@@ -227,15 +229,15 @@ const RecentMessages = ({ mobile = false }) => {
       <div className="flex-1 overflow-y-auto no-scrollbar divide-y divide-app">
         {loading ? (
           <div className="p-6 text-center text-xs text-app-muted">
-            Loading messages...
+            {t("messages.loadingMessages") || "Loading messages..."}
           </div>
         ) : messages.length === 0 ? (
           <div className="p-8 text-center flex flex-col items-center justify-center text-app-muted">
             <div className="w-12 h-12 rounded-full bg-purple-500/10 border border-purple-300/30 flex items-center justify-center mb-3">
               <MessageSquare className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
-            <p className="text-xs font-semibold text-app mb-1">No conversations yet</p>
-            <p className="text-[11px] text-app-muted">Reach out to your connections!</p>
+            <p className="text-xs font-semibold text-app mb-1">{t("messages.emptyTitle") || "No conversations yet"}</p>
+            <p className="text-[11px] text-app-muted">{t("messages.emptyDesc") || "Reach out to your connections!"}</p>
           </div>
         ) : (
           messages.map((item, index) => {
@@ -256,7 +258,7 @@ const RecentMessages = ({ mobile = false }) => {
                     ring={isUnread}
                   />
                   {isUnread && (
-                    <span className="absolute top-0 right-0 w-3 h-3 bg-emerald-500 rounded-full animate-pulse ring-2 ring-white dark:ring-slate-900" />
+                    <span className="absolute top-0 end-0 w-3 h-3 bg-emerald-500 rounded-full animate-pulse ring-2 ring-white dark:ring-slate-900" />
                   )}
                 </div>
 
@@ -269,12 +271,12 @@ const RecentMessages = ({ mobile = false }) => {
                       isUnread ? "text-purple-600 dark:text-purple-300 font-semibold" : "text-app-muted"
                     }`}
                   >
-                    {item.text ? item.text : "Photo attachment"}
+                    {item.text ? item.text : (t("messages.media") || "Media")}
                   </p>
                 </div>
 
                 <div className="flex flex-col items-end text-[10px] text-app-muted shrink-0">
-                  <span>{moment(item.createdAt).fromNow(true)}</span>
+                  <span>{moment(item.createdAt).locale(lang).fromNow(true)}</span>
                 </div>
               </Link>
             );

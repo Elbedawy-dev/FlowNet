@@ -22,7 +22,7 @@ import toast from "react-hot-toast";
 const PostCard = ({ post, onDeleted, onUpdated, className = "" }) => {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [currentPost, setCurrentPost] = useState(post);
   const [likes, setLikes] = useState(
@@ -269,7 +269,7 @@ const PostCard = ({ post, onDeleted, onUpdated, className = "" }) => {
             <div className="text-app-muted text-xs flex items-center gap-1 flex-wrap">
               <span>@{currentPost.user?.username || "user"}</span>
               <span>•</span>
-              <span>{moment(currentPost.createdAt).fromNow()}</span>
+              <span>{moment(currentPost.createdAt).locale(lang).fromNow()}</span>
               {currentPost.edited && (
                 <span className="text-[11px] text-purple-400 font-normal">
                   ({t("posts.edited") || "edited"})
@@ -292,7 +292,7 @@ const PostCard = ({ post, onDeleted, onUpdated, className = "" }) => {
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-8 z-30 w-36 bg-app-card border border-app rounded-2xl shadow-xl p-1.5 backdrop-blur-xl">
+              <div className="absolute end-0 top-8 z-30 w-36 bg-app-card border border-app rounded-2xl shadow-xl p-1.5 backdrop-blur-xl">
                 <button
                   type="button"
                   onClick={openEditModal}
@@ -388,7 +388,7 @@ const PostCard = ({ post, onDeleted, onUpdated, className = "" }) => {
         </div>
 
         <div
-          className="flex items-center gap-1.5 cursor-pointer hover:text-app transition-colors select-none ml-auto"
+          className="flex items-center gap-1.5 cursor-pointer hover:text-app transition-colors select-none ms-auto"
           onClick={handleShare}
           title={t("posts.shareTooltip") || "Share post"}
         >

@@ -314,7 +314,7 @@ const Settings = () => {
                   {t('settings.general.username') || 'Username'}
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-3 text-purple-400 font-medium">@</span>
+                  <span className="absolute start-4 top-3 text-purple-400 font-medium">@</span>
                   <input
                     type="text"
                     value={generalForm.username}
@@ -326,7 +326,7 @@ const Settings = () => {
                     }
                     required
                     placeholder="username"
-                    className="w-full pl-9 pr-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+                    className="w-full ps-9 pe-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition text-start"
                   />
                 </div>
               </div>

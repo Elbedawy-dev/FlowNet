@@ -212,7 +212,7 @@ const GroupCreate = () => {
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-purple-400" />
+                <ArrowRight className="w-4 h-4 text-purple-400 rtl:rotate-180" />
               </div>
             ))}
           </div>

@@ -167,7 +167,15 @@ const Connections = () => {
           </div>
         ) : currentList.length === 0 ? (
           <EmptyState
-            title={`No ${activeTab} yet`}
+            title={
+              activeTab === "pending"
+                ? t("connections.emptyPending")
+                : activeTab === "following"
+                ? t("connections.emptyFollowing")
+                : activeTab === "followers"
+                ? t("connections.emptyFollowers")
+                : t("connections.emptyConnections")
+            }
             message={
               activeTab === "pending"
                 ? t("connections.emptyPending")

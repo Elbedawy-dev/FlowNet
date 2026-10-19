@@ -1,4 +1,45 @@
 import axios from 'axios';
+import en from '../i18n/en.js';
+import ar from '../i18n/ar.js';
+
+export function getLocalizedApiError(error) {
+  const currentLang =
+    (typeof window !== 'undefined' &&
+      (localStorage.getItem('flownet_lang') || document.documentElement.getAttribute('lang'))) ||
+    'en';
+  const dict = currentLang === 'ar' ? ar : en;
+
+  const code = error.response?.data?.code || error.code;
+  const status = error.response?.status || error.status;
+  const rawMsg = error.response?.data?.message || error.message || '';
+
+  if (code === 'BLOCKED_BY_USER' || rawMsg.includes('BLOCKED_BY_USER') || /blocked by user/i.test(rawMsg)) {
+    return dict.errors?.BLOCKED_BY_USER || rawMsg;
+  }
+  if (code === 'USERNAME_TAKEN' || /username.*taken|already taken/i.test(rawMsg)) {
+    return dict.errors?.USERNAME_TAKEN || rawMsg;
+  }
+  if (code === 'VALIDATION_ERROR' || status === 422 || /validation/i.test(rawMsg)) {
+    return dict.errors?.VALIDATION_ERROR || rawMsg;
+  }
+  if (code === 'FORBIDDEN' || status === 403) {
+    if (code === 'MESSAGING_RESTRICTED' || /only connections/i.test(rawMsg)) {
+      return dict.messages?.connectionsOnly || dict.errors?.FORBIDDEN || rawMsg;
+    }
+    return dict.errors?.FORBIDDEN || rawMsg;
+  }
+  if (code === 'NOT_FOUND' || status === 404) {
+    return dict.errors?.NOT_FOUND || rawMsg;
+  }
+  if (
+    !error.response &&
+    (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || /network/i.test(rawMsg))
+  ) {
+    return dict.errors?.NETWORK_ERROR || rawMsg;
+  }
+
+  return rawMsg || dict.errors?.GENERIC || 'An unexpected error occurred';
+}
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
@@ -52,12 +93,12 @@ api.interceptors.response.use(
         }
       }
     }
-    const message =
-      error.response?.data?.message || error.message || 'An unexpected error occurred';
+    const message = getLocalizedApiError(error);
     const apiError = new Error(message);
     apiError.status = error.response?.status;
     apiError.code = error.response?.data?.code;
     apiError.data = error.response?.data;
+    apiError.rawMessage = error.response?.data?.message || error.message;
     return Promise.reject(apiError);
   }
 );

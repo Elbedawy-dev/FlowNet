@@ -14,7 +14,7 @@ const PostDetails = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
@@ -146,9 +146,9 @@ const PostDetails = () => {
         <button
           onClick={() => navigate(-1)}
           className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-app text-app cursor-pointer"
-          aria-label="Go back"
+          aria-label={t("common.back") || "Go back"}
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} className="rtl:rotate-180" />
         </button>
         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
           {t("posts.postDetails") || "Post Details"}
@@ -217,7 +217,7 @@ const PostDetails = () => {
 
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-purple-400">
-                          {moment(comment.createdAt).fromNow()}
+                          {moment(comment.createdAt).locale(lang).fromNow()}
                         </span>
                         {(isAuthor || isPostOwner) && (
                           <button

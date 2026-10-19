@@ -54,7 +54,7 @@ const CreatePost = () => {
 
   const handlePublish = async () => {
     if (!content.trim() && selectedImages.length === 0) {
-      throw new Error("Post cannot be completely empty");
+      throw new Error(t("posts.contentOrImageRequired") || "Post cannot be completely empty");
     }
 
     setIsPublishing(true);
@@ -77,7 +77,7 @@ const CreatePost = () => {
   const onSubmit = (e) => {
     e.preventDefault();
     toast.promise(handlePublish(), {
-      loading: "Publishing cosmic post...",
+      loading: t("posts.publishing") || "Publishing cosmic post...",
       success: t("common.success") + " 🚀",
       error: (err) => err.message || t("common.error"),
     });
@@ -93,7 +93,7 @@ const CreatePost = () => {
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-sm text-app-muted hover:text-app transition cursor-pointer p-2 rounded-xl bg-app-card border border-app"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={18} className="rtl:rotate-180" />
           <span>{t("common.back")}</span>
         </button>
         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">

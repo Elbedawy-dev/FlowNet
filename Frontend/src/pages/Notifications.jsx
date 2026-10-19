@@ -5,6 +5,7 @@ import moment from 'moment';
 import { notificationsApi } from '../api/axios';
 import { useNotifications } from '../context/NotificationsContext';
 import { useSocket } from '../context/SocketContext';
+import { useLanguage } from '../context/LanguageContext';
 import Avatar from '../components/Avatar';
 import EmptyState from '../components/EmptyState';
 import { NotificationSkeleton } from '../components/Skeletons';
@@ -14,6 +15,7 @@ const Notifications = () => {
   const navigate = useNavigate();
   const { markAllAsRead, refreshUnreadCount } = useNotifications();
   const { socket } = useSocket();
+  const { t, lang } = useLanguage();
 
   const [filter, setFilter] = useState('all'); // 'all' | 'likes' | 'comments' | 'media'
   const [notifications, setNotifications] = useState([]);
@@ -100,23 +102,23 @@ const Notifications = () => {
   const getActionText = (n) => {
     switch (n.type) {
       case 'like':
-        return 'liked your post';
+        return t('notifications.likedPost') || 'liked your post';
       case 'comment':
-        return 'commented on your post';
+        return t('notifications.commentedPost') || 'commented on your post';
       case 'follow':
-        return 'started following you';
+        return t('notifications.startedFollowing') || 'started following you';
       case 'connection_request':
-        return 'sent you a connection request';
+        return t('notifications.sentConnection') || 'sent you a connection request';
       case 'connection_accepted':
-        return 'accepted your connection request';
+        return t('notifications.acceptedConnection') || 'accepted your connection request';
       case 'group_join_request':
-        return 'requested to join your group';
+        return t('notifications.groupJoinRequest') || 'requested to join your group';
       case 'group_request_accepted':
-        return 'accepted your group join request';
+        return t('notifications.groupRequestAccepted') || 'accepted your group join request';
       case 'message':
-        return 'sent you a message';
+        return t('notifications.sentMessage') || 'sent you a message';
       default:
-        return 'interacted with you';
+        return t('notifications.interacted') || 'interacted with you';
     }
   };
 
@@ -147,10 +149,10 @@ const Notifications = () => {
   };
 
   const tabs = [
-    { key: 'all', label: 'All', icon: Bell },
-    { key: 'likes', label: 'Likes', icon: Heart },
-    { key: 'comments', label: 'Comments', icon: MessageCircle },
-    { key: 'media', label: 'Media', icon: ImageIcon },
+    { key: 'all', label: t('notifications.all') || 'All', icon: Bell },
+    { key: 'likes', label: t('notifications.likes') || 'Likes', icon: Heart },
+    { key: 'comments', label: t('notifications.comments') || 'Comments', icon: MessageCircle },
+    { key: 'media', label: t('notifications.media') || 'Media', icon: ImageIcon },
   ];
 
   return (
@@ -161,10 +163,10 @@ const Notifications = () => {
           <Bell className="w-7 h-7 text-pink-400 animate-pulse" />
         </div>
         <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300">
-          Notifications
+          {t('notifications.title') || 'Notifications'}
         </h1>
         <p className="text-gray-400 text-sm mt-1">
-          Stay updated with your cosmic interactions and network activities
+          {t('notifications.subtitle') || 'Stay updated with your cosmic interactions and network activities'}
         </p>
 
         {/* Filter Tabs (Centered, Icon-Only) */}
@@ -202,11 +204,11 @@ const Notifications = () => {
           </div>
         ) : notifications.length === 0 ? (
           <EmptyState
-            title="No notifications yet"
-            description={
+            title={t('notifications.emptyTitle') || "No notifications yet"}
+            message={
               filter === 'all'
-                ? "When someone likes, comments, or connects with you, you'll see it here."
-                : `No notifications found under the "${filter}" filter.`
+                ? (t('notifications.emptyDesc') || "When someone likes, comments, or connects with you, you'll see it here.")
+                : (t('notifications.emptyDesc') || "No notifications found under this filter.")
             }
             icon={Bell}
           />
@@ -235,7 +237,7 @@ const Notifications = () => {
                     size="md"
                     className="ring-2 ring-purple-500/30 group-hover:ring-purple-400 transition"
                   />
-                  <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-app-card border border-app shadow-sm">
+                  <div className="absolute -bottom-1 -end-1 p-1 rounded-full bg-app-card border border-app shadow-sm">
                     {getActionIcon(n.type)}
                   </div>
                 </div>
@@ -243,7 +245,7 @@ const Notifications = () => {
                 {/* Center: Details */}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-app-muted">
-                    <span className="font-bold text-app hover:text-pink-400 transition mr-1.5">
+                    <span className="font-bold text-app hover:text-pink-400 transition me-1.5">
                       {n.actor?.full_name || 'Someone'}
                     </span>
                     <span className="text-app-muted">{getActionText(n)}</span>
@@ -258,11 +260,11 @@ const Notifications = () => {
 
                   {/* Time ago */}
                   <div className="text-xs text-app-muted mt-1.5 flex items-center gap-1.5">
-                    <span>{moment(n.createdAt).fromNow()}</span>
+                    <span>{moment(n.createdAt).locale(lang).fromNow()}</span>
                     {!n.read && (
                       <>
                         <span>•</span>
-                        <span className="text-pink-400 font-medium">New</span>
+                        <span className="text-pink-400 font-medium">{t('notifications.newBadge') || 'New'}</span>
                       </>
                     )}
                   </div>

@@ -87,7 +87,7 @@ const Home = () => {
       {/* Top Header Bar */}
       <div className="w-[92%] max-w-6xl mb-6 z-20 rounded-3xl bg-app-card backdrop-blur-xl border border-app shadow-app-glow p-3">
         {/* Mobile Row 1 (sm:hidden): Logo (Left) and Actions (Bell + Toggle) (Right) */}
-        <div className="flex sm:hidden items-center justify-between w-full mb-2.5">
+        <div dir="ltr" className="flex sm:hidden items-center justify-between w-full mb-2.5">
           <Logo
             onClick={() => navigate("/")}
             iconClassName="w-7 h-7"
@@ -114,7 +114,7 @@ const Home = () => {
         </div>
 
         {/* Row 2 on Mobile / Full Row on Desktop */}
-        <div className="flex items-center justify-between w-full">
+        <div dir="ltr" className="flex items-center justify-between w-full">
           {/* Desktop Logo (hidden on mobile) */}
           <div className="hidden sm:flex items-center mr-4 shrink-0">
             <Logo
@@ -127,6 +127,7 @@ const Home = () => {
           <div className="flex-1 mx-0 sm:mx-6 max-w-md">
             <input
               type="text"
+              dir="auto"
               placeholder={t("home.searchPlaceholder")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}

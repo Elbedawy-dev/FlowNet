@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, UserPlus, UserCheck, MessageCircle } from 'lucide-react';
 import Avatar from './Avatar';
+import { useLanguage } from '../context/LanguageContext';
 
 const UserCard = ({
   user,
@@ -9,6 +10,7 @@ const UserCard = ({
   isFollowLoading,
 }) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleProfileClick = () => {
     navigate(`/profile/${user._id}`);
@@ -61,7 +63,7 @@ const UserCard = ({
         )}
         <span className="flex items-center gap-1 bg-app-input px-2.5 py-1 rounded-full border border-app">
           <Users size={12} className="text-indigo-400" />
-          <span>{user.followers_count ?? (user.followers?.length || 0)} Followers</span>
+          <span>{user.followers_count ?? (user.followers?.length || 0)} {t('search.followers')}</span>
         </span>
       </div>
 
@@ -78,18 +80,19 @@ const UserCard = ({
         >
           {isFollowing ? (
             <>
-              <UserCheck size={14} /> Following
+              <UserCheck size={14} /> {t('search.following')}
             </>
           ) : (
             <>
-              <UserPlus size={14} /> Follow
+              <UserPlus size={14} /> {t('search.follow')}
             </>
           )}
         </button>
 
         <button
           onClick={handleMessageClick}
-          aria-label="Send message"
+          aria-label={t('messages.typeMessage') || 'Send message'}
+          title={t('messages.typeMessage') || 'Send message'}
           className="p-2 rounded-2xl bg-app-input hover:bg-white/10 border border-app text-app transition-all active:scale-95 cursor-pointer shadow-sm"
         >
           <MessageCircle size={16} />

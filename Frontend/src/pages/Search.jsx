@@ -97,13 +97,14 @@ const Search = () => {
       {/* Glass Search Bar */}
       <div className="w-full max-w-2xl relative mb-10">
         <div className="relative flex items-center">
-          <SearchIcon className="absolute left-4 w-5 h-5 text-app-muted" />
+          <SearchIcon className="absolute start-4 w-5 h-5 text-app-muted pointer-events-none" />
           <input
             type="text"
+            dir="auto"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("search.placeholder")}
-            className="w-full pl-12 pr-4 py-3.5 text-sm sm:text-base rounded-full bg-app-card border border-app text-app placeholder-app-muted backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all shadow-[0_0_25px_rgba(131,58,180,0.15)]"
+            className="w-full ps-12 pe-4 py-3.5 text-sm sm:text-base rounded-full bg-app-card border border-app text-app placeholder-app-muted backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all shadow-[0_0_25px_rgba(131,58,180,0.15)] text-start"
           />
         </div>
       </div>

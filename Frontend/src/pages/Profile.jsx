@@ -366,7 +366,7 @@ const Profile = () => {
           </div>
 
           {/* User Details */}
-          <div className="mt-4 text-center sm:text-left">
+          <div className="mt-4 text-center sm:text-start">
             <div className="flex items-center justify-center sm:justify-start gap-1.5">
               <h2 className="text-xl sm:text-2xl font-bold text-app">
                 {profile.full_name || "User"}
@@ -404,19 +404,19 @@ const Profile = () => {
             {/* Network Counts */}
             <div className="flex items-center gap-6 mt-4 pt-4 border-t border-app text-xs text-app-muted justify-center sm:justify-start">
               <div>
-                <span className="font-bold text-app text-sm mr-1">
+                <span className="font-bold text-app text-sm me-1">
                   {profile.followers_count ?? (profile.followers?.length || 0)}
                 </span>
                 <span>{t("profile.followers") || "Followers"}</span>
               </div>
               <div>
-                <span className="font-bold text-app text-sm mr-1">
+                <span className="font-bold text-app text-sm me-1">
                   {profile.following_count ?? (profile.following?.length || 0)}
                 </span>
                 <span>{t("profile.following") || "Following"}</span>
               </div>
               <div>
-                <span className="font-bold text-app text-sm mr-1">
+                <span className="font-bold text-app text-sm me-1">
                   {profile.connections_count ?? (profile.connections?.length || 0)}
                 </span>
                 <span>{t("profile.connections") || "Connections"}</span>
@@ -523,7 +523,7 @@ const Profile = () => {
           <div className="w-full max-w-lg bg-app-card border border-app rounded-3xl p-6 sm:p-8 shadow-2xl text-app relative max-h-[90vh] overflow-y-auto no-scrollbar">
             <button
               onClick={() => setIsEditOpen(false)}
-              className="absolute top-5 right-5 p-1 text-app-muted hover:text-app rounded-full cursor-pointer"
+              className="absolute top-5 end-5 p-1 text-app-muted hover:text-app rounded-full cursor-pointer"
             >
               <X size={20} />
             </button>

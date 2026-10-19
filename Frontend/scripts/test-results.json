@@ -1,0 +1,233 @@
+{
+  "assertion_a_messages": {
+    "pass": true,
+    "data": {
+      "currentUrl": "/messages",
+      "heading": "الرسائل",
+      "rowCount": 3,
+      "items": [
+        {
+          "text": "FFlowNet Official Admin@flownet_adminWelcome to FlowNet! Connect with people and",
+          "hasChatBtn": true,
+          "hasProfileBtn": true
+        },
+        {
+          "text": "MMoaaz Fathi@moaazf616Hey there! How is your project going?• منذ ساعتين",
+          "hasChatBtn": true,
+          "hasProfileBtn": true
+        },
+        {
+          "text": "SSarah Connor@sarah_c",
+          "hasChatBtn": true,
+          "hasProfileBtn": true
+        }
+      ],
+      "hasAdmin": true,
+      "hasMoaaz": true,
+      "hasSarah": true
+    }
+  },
+  "assertion_b_audit": null,
+  "assertion_c_raw_keys": {
+    "pass": true,
+    "count": 0
+  },
+  "assertion_d_direction": {
+    "pass": true
+  },
+  "assertion_e_header_393": {
+    "diffOk": true,
+    "diffs": {}
+  },
+  "assertion_e_header_1280": {
+    "diffOk": true,
+    "diffs": {}
+  },
+  "assertion_f_overflow": {
+    "pass": true,
+    "count": 0
+  },
+  "assertion_f_console_errors": {
+    "count": 16,
+    "errors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ]
+  },
+  "routesTested": [
+    {
+      "route": "/",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "home_en.png"
+    },
+    {
+      "route": "/messages",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "messages_en.png"
+    },
+    {
+      "route": "/search",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "search_en.png"
+    },
+    {
+      "route": "/settings",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "settings_en.png"
+    },
+    {
+      "route": "/connections",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "connections_en.png"
+    },
+    {
+      "route": "/notifications",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "notifications_en.png"
+    },
+    {
+      "route": "/groups",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "groups_en.png"
+    },
+    {
+      "route": "/groups/joined",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "groups_joined_en.png"
+    },
+    {
+      "route": "/create-post",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "create_post_en.png"
+    },
+    {
+      "route": "/profile",
+      "lang": "en",
+      "dir": "ltr",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "profile_en.png"
+    },
+    {
+      "route": "/",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "home_ar.png"
+    },
+    {
+      "route": "/messages",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "messages_ar.png"
+    },
+    {
+      "route": "/search",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "search_ar.png"
+    },
+    {
+      "route": "/settings",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "settings_ar.png"
+    },
+    {
+      "route": "/connections",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "connections_ar.png"
+    },
+    {
+      "route": "/notifications",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "notifications_ar.png"
+    },
+    {
+      "route": "/groups",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "groups_ar.png"
+    },
+    {
+      "route": "/groups/joined",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "groups_joined_ar.png"
+    },
+    {
+      "route": "/create-post",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "create_post_ar.png"
+    },
+    {
+      "route": "/profile",
+      "lang": "ar",
+      "dir": "rtl",
+      "rawKeys": 0,
+      "overflow": false,
+      "screenshot": "profile_ar.png"
+    }
+  ]
+}

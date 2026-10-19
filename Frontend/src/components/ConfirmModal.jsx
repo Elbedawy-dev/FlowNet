@@ -38,7 +38,7 @@ const ConfirmModal = ({
         >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-purple-300 hover:text-white p-1 rounded-full cursor-pointer"
+            className="absolute top-4 end-4 text-purple-300 hover:text-white p-1 rounded-full cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

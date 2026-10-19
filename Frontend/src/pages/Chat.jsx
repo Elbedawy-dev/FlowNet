@@ -49,14 +49,14 @@ const Chat = () => {
       if (err.code === "BLOCKED_BY_USER") {
         setBlockedByThem(true);
       } else if (err.code === "MESSAGING_RESTRICTED") {
-        toast.error("This user only accepts messages from their connections");
+        toast.error(t("messages.connectionsOnly") || "This user only accepts messages from their connections");
       } else {
-        toast.error(err.message || "Failed to load chat");
+        toast.error(err.message || t("messages.loadChatFailed") || "Failed to load chat");
       }
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, t]);
 
   useEffect(() => {
     fetchConversation();
@@ -110,11 +110,11 @@ const Chat = () => {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+      toast.error(t("messages.selectImage") || "Please select an image file");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be 5MB or less");
+      toast.error(t("messages.imageSizeLimit") || "Image size must be 5MB or less");
       return;
     }
 
@@ -174,9 +174,9 @@ const Chat = () => {
       if (err.code === "BLOCKED_BY_USER") {
         setBlockedByThem(true);
       } else if (err.code === "MESSAGING_RESTRICTED") {
-        toast.error("This user only accepts messages from their connections");
+        toast.error(t("messages.connectionsOnly") || "This user only accepts messages from their connections");
       } else {
-        toast.error(err.message || "Failed to send message");
+        toast.error(err.message || t("messages.sendFailed") || "Failed to send message");
       }
     } finally {
       setIsSending(false);
@@ -187,10 +187,10 @@ const Chat = () => {
     try {
       await usersApi.unblock(userId);
       setBlockedByMe(false);
-      toast.success("User unblocked");
+      toast.success(t("profile.userUnblocked") || "User unblocked");
       fetchConversation();
     } catch (err) {
-      toast.error(err.message || "Failed to unblock user");
+      toast.error(err.message || t("messages.unblockFailed") || "Failed to unblock user");
     }
   };
 
@@ -237,7 +237,7 @@ const Chat = () => {
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-app-muted hover:text-app transition-all cursor-pointer"
             title={t("common.back")}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} className="rtl:rotate-180" />
           </button>
 
           <div
@@ -287,8 +287,8 @@ const Chat = () => {
               size="xl"
               className="mb-3 opacity-80"
             />
-            <p className="text-sm font-medium">Say hello to {otherUser?.full_name || "your friend"}! 👋</p>
-            <p className="text-xs text-purple-300/40 mt-1">Messages are private & real-time encrypted</p>
+            <p className="text-sm font-medium">{t("messages.sayHello", { name: otherUser?.full_name || "your friend" })}</p>
+            <p className="text-xs text-purple-300/40 mt-1">{t("messages.encryptedNotice")}</p>
           </div>
         ) : (
           messages.map((msg, index) => {
@@ -332,8 +332,8 @@ const Chat = () => {
                   <div
                     className={`max-w-[78%] sm:max-w-[65%] rounded-3xl p-3.5 shadow-md ${
                       isMe
-                        ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white rounded-br-xs shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                        : "bg-app-card text-app rounded-bl-xs border border-app"
+                        ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white rounded-ee-xs shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                        : "bg-app-card text-app rounded-es-xs border border-app"
                     }`}
                   >
                     {/* Media attachment */}
@@ -401,12 +401,12 @@ const Chat = () => {
             />
             <button
               onClick={removeSelectedImage}
-              className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-0.5 shadow cursor-pointer"
+              className="absolute -top-1 -end-1 bg-rose-600 text-white rounded-full p-0.5 shadow cursor-pointer"
             >
               <X size={12} />
             </button>
           </div>
-          <span className="text-xs text-purple-300">Image attached. Ready to send!</span>
+          <span className="text-xs text-purple-300">{t("messages.imageAttached") || "Image attached. Ready to send!"}</span>
         </div>
       )}
 
@@ -428,11 +428,12 @@ const Chat = () => {
 
           <input
             type="text"
+            dir="auto"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={t("messages.typeMessage")}
             disabled={blockedByMe}
-            className="flex-1 py-3 px-5 text-sm rounded-full bg-app-input text-app placeholder-app-muted border border-app focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
+            className="flex-1 py-3 px-5 text-sm rounded-full bg-app-input text-app placeholder-app-muted border border-app focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all text-start"
           />
 
           <button
@@ -440,7 +441,7 @@ const Chat = () => {
             disabled={(!inputText.trim() && !selectedImage) || isSending || blockedByMe}
             className="p-3 rounded-full bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.5)] disabled:opacity-40 cursor-pointer"
           >
-            <Send size={18} />
+            <Send size={18} className="rtl:rotate-180" />
           </button>
         </form>
       )}

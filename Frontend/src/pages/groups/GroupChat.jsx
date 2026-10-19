@@ -236,7 +236,7 @@ const GroupChat = () => {
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-app-muted hover:text-app transition cursor-pointer"
             title={t('common.back')}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
           </button>
 
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-white shrink-0 shadow-md">
@@ -387,8 +387,8 @@ const GroupChat = () => {
                 <div
                   className={`max-w-[78%] sm:max-w-[65%] rounded-2xl p-3 shadow-md ${
                     isMe
-                      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-br-none'
-                      : 'bg-app-card border border-app text-app rounded-bl-none'
+                      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-ee-none'
+                      : 'bg-app-card border border-app text-app rounded-es-none'
                   }`}
                 >
                   {/* Sender Name (never raw IDs!) */}
@@ -420,7 +420,7 @@ const GroupChat = () => {
                   {/* Timestamp */}
                   <div
                     className={`text-[10px] mt-1 ${
-                      isMe ? 'text-white/80 text-right' : 'text-app-muted text-left'
+                      isMe ? 'text-white/80 text-end' : 'text-app-muted text-start'
                     }`}
                   >
                     {moment(msg.createdAt).format('hh:mm A')}
@@ -486,6 +486,7 @@ const GroupChat = () => {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={t('groups.typeMessage')}
+          dir="auto"
           className="flex-1 bg-transparent px-3 py-2 text-app placeholder-app-muted text-sm focus:outline-none"
         />
 
@@ -498,7 +499,7 @@ const GroupChat = () => {
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 rtl:rotate-180" />
               <span>{t('common.send')}</span>
             </>
           )}
