@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 import { connectDB } from '../config/db.js';
 import { User } from '../models/User.js';
-import { Group } from '../models/Group.js';
 import { Post } from '../models/Post.js';
 
 const seedDatabase = async () => {
@@ -52,60 +51,7 @@ const seedDatabase = async () => {
       });
     }
 
-    // 2. Clear old seeded groups if any
-    await Group.deleteMany({ owner: ownerId });
-
-    // 3. Create the 5 groups specified: names (web, saad, wer, wer, 1) with icons (users, rocket, globe, sparkles, star)
-    const groupsData = [
-      {
-        name: 'web',
-        icon: 'users',
-        description: 'Web development enthusiasts and modern frontend architects #react #vite',
-        owner: ownerId,
-        admins: [ownerId],
-        members: [ownerId],
-        pending_requests: [],
-      },
-      {
-        name: 'saad',
-        icon: 'rocket',
-        description: 'Tech startups, innovation, and futuristic engineering flows #startup #future',
-        owner: ownerId,
-        admins: [ownerId],
-        members: [ownerId],
-        pending_requests: [],
-      },
-      {
-        name: 'wer',
-        icon: 'globe',
-        description: 'Global community connecting creators and developers worldwide #global #community',
-        owner: ownerId,
-        admins: [ownerId],
-        members: [ownerId],
-        pending_requests: [],
-      },
-      {
-        name: 'wer',
-        icon: 'sparkles',
-        description: 'Creative design, sleek UI/UX, and cosmic aesthetics #design #art',
-        owner: ownerId,
-        admins: [ownerId],
-        members: [ownerId],
-        pending_requests: [],
-      },
-      {
-        name: '1',
-        icon: 'star',
-        description: 'VIP star hub and trending discussions on FlowNet #vip #trends',
-        owner: ownerId,
-        admins: [ownerId],
-        members: [ownerId],
-        pending_requests: [],
-      },
-    ];
-
-    const createdGroups = await Group.insertMany(groupsData);
-    console.log(`[Seed] Created ${createdGroups.length} groups successfully.`);
+// 2. Sample posts for the feed (groups are user-created)
 
     // 4. Create sample posts for the feed
     await Post.deleteMany({ user: ownerId });

@@ -32,6 +32,11 @@ const notificationSchema = new mongoose.Schema(
       ref: 'Post',
       default: null,
     },
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group',
+      default: null,
+    },
     comment_text: {
       type: String,
       default: '',

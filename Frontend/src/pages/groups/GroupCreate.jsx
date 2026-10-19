@@ -1,11 +1,33 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, Users, Rocket, Globe, Sparkles, Star, AlertCircle, ArrowRight } from 'lucide-react';
+import {
+  PlusCircle,
+  Users,
+  Rocket,
+  Globe,
+  Sparkles,
+  Star,
+  Code,
+  BookOpen,
+  Heart,
+  ArrowRight,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { groupsApi } from '../../api/axios';
 import { getGroupIcon } from '../../utils/groupIcons';
 import Loading from '../../components/Loading';
 import { useLanguage } from '../../context/LanguageContext';
+
+const ICONS = [
+  { key: 'users', labelKey: 'groups.iconUsers', icon: Users },
+  { key: 'rocket', labelKey: 'groups.iconRocket', icon: Rocket },
+  { key: 'globe', labelKey: 'groups.iconGlobe', icon: Globe },
+  { key: 'sparkles', labelKey: 'groups.iconSparkles', icon: Sparkles },
+  { key: 'star', labelKey: 'groups.iconStar', icon: Star },
+  { key: 'code', labelKey: 'groups.iconCode', icon: Code },
+  { key: 'book', labelKey: 'groups.iconBook', icon: BookOpen },
+  { key: 'heart', labelKey: 'groups.iconHeart', icon: Heart },
+];
 
 const GroupCreate = () => {
   const navigate = useNavigate();
@@ -13,7 +35,7 @@ const GroupCreate = () => {
   const [myGroups, setMyGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [isFeatureDisabled, setIsFeatureDisabled] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
     name: '',
@@ -37,41 +59,48 @@ const GroupCreate = () => {
     fetchMyGroups();
   }, []);
 
+  const validate = () => {
+    const errs = {};
+    const trimmed = form.name.trim();
+    if (!trimmed || trimmed.length < 3) {
+      errs.name = t('groups.nameMinMax') || 'Group name must be between 3 and 40 characters';
+    } else if (trimmed.length > 40) {
+      errs.name = t('groups.nameMinMax') || 'Group name must be between 3 and 40 characters';
+    }
+    if (form.description && form.description.trim().length > 200) {
+      errs.description = t('groups.descMax') || 'Description cannot exceed 200 characters';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleCreateGroup = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!validate() || creating) return;
 
     try {
       setCreating(true);
-      const newGroup = await groupsApi.create({
+      const res = await groupsApi.create({
         name: form.name.trim(),
         icon: form.icon,
         description: form.description.trim(),
       });
 
-      toast.success(t('common.success'));
+      const newGroup = res.data || res;
+      toast.success(t('groups.groupCreatedSuccess') || 'Group created successfully! 🚀');
       setForm({ name: '', icon: 'users', description: '' });
       fetchMyGroups();
       navigate(`/groups/${newGroup._id}`);
     } catch (err) {
-      if (err.code === 'FEATURE_DISABLED' || err.status === 403) {
-        setIsFeatureDisabled(true);
-        toast.error(t('groups.disabledNotice'));
-      } else {
-        toast.error(err.message || t('common.error'));
+      const msg = err.message || t('common.error');
+      toast.error(msg);
+      if (err.status === 409) {
+        setErrors({ name: msg });
       }
     } finally {
       setCreating(false);
     }
   };
-
-  const icons = [
-    { key: 'users', label: 'Users', icon: Users },
-    { key: 'rocket', label: 'Rocket', icon: Rocket },
-    { key: 'globe', label: 'Globe', icon: Globe },
-    { key: 'sparkles', label: 'Sparkles', icon: Sparkles },
-    { key: 'star', label: 'Star', icon: Star },
-  ];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -85,48 +114,44 @@ const GroupCreate = () => {
         </p>
       </div>
 
-      {/* Feature Disabled Calm Notice */}
-      {isFeatureDisabled ? (
-        <div className="p-6 bg-app-card border border-amber-500/30 rounded-3xl text-center shadow-[0_0_25px_rgba(245,158,11,0.15)] mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto mb-3">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <h2 className="text-xl font-bold text-app mb-2">{t('groups.disabledNotice')}</h2>
-          <p className="text-sm text-app-muted max-w-md mx-auto mb-4">
-            {t('groups.disabledNoticeDesc')}
-          </p>
-          <button
-            onClick={() => navigate('/groups')}
-            className="px-5 py-2.5 rounded-xl font-semibold bg-purple-600 hover:bg-purple-700 text-white text-sm transition cursor-pointer"
-          >
-            {t('groups.browseAvailable')}
-          </button>
-        </div>
-      ) : (
-        /* Create Form Card */
-        <div className="bg-app-card backdrop-blur border border-app rounded-3xl p-6 md:p-8 shadow-[0_0_25px_rgba(131,58,180,0.2)] mb-10">
+      {/* Main Grid: Form + Live Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+        {/* Create Form Card */}
+        <div className="lg:col-span-7 bg-app-card backdrop-blur border border-app rounded-3xl p-6 md:p-8 shadow-[0_0_25px_rgba(131,58,180,0.2)]">
           <form onSubmit={handleCreateGroup} className="space-y-6">
             <div>
               <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">
-                {t('groups.groupName')}
+                {t('groups.groupName')} *
               </label>
               <input
                 type="text"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, name: e.target.value });
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: null }));
+                }}
                 required
-                maxLength={100}
+                minLength={3}
+                maxLength={40}
                 placeholder={t('groups.groupName')}
-                className="w-full px-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                className="w-full px-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
               />
+              <div className="flex justify-between items-center mt-1 text-[11px]">
+                {errors.name ? (
+                  <span className="text-rose-500 font-medium">{errors.name}</span>
+                ) : (
+                  <span className="text-app-muted">3-40 characters</span>
+                )}
+                <span className="text-app-muted">{form.name.trim().length}/40</span>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">
                 {t('groups.groupIcon')}
               </label>
-              <div className="grid grid-cols-5 gap-3">
-                {icons.map((item) => {
+              <div className="grid grid-cols-4 sm:grid-cols-4 gap-2.5">
+                {ICONS.map((item) => {
                   const Icon = item.icon;
                   const isSelected = form.icon === item.key;
                   return (
@@ -136,12 +161,14 @@ const GroupCreate = () => {
                       onClick={() => setForm({ ...form, icon: item.key })}
                       className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer ${
                         isSelected
-                          ? 'bg-gradient-to-tr from-emerald-500 to-teal-600 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)] scale-105'
+                          ? 'bg-linear-to-tr from-purple-600 via-pink-600 to-indigo-600 text-white border-purple-400 shadow-lg shadow-purple-900/40 scale-105'
                           : 'bg-app-input text-app-muted border-app hover:text-app hover:bg-white/5'
                       }`}
                     >
                       <Icon className="w-5 h-5" />
-                      <span className="text-[11px] font-medium">{item.label}</span>
+                      <span className="text-[10px] font-medium text-center line-clamp-1">
+                        {t(item.labelKey)}
+                      </span>
                     </button>
                   );
                 })}
@@ -154,19 +181,30 @@ const GroupCreate = () => {
               </label>
               <textarea
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, description: e.target.value });
+                  if (errors.description) setErrors((prev) => ({ ...prev, description: null }));
+                }}
                 rows={3}
-                maxLength={500}
+                maxLength={200}
                 placeholder={t('groups.groupDesc')}
-                className="w-full px-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition resize-none"
+                className="w-full px-4 py-3 bg-app-input border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition resize-none"
               />
+              <div className="flex justify-between items-center mt-1 text-[11px]">
+                {errors.description ? (
+                  <span className="text-rose-500 font-medium">{errors.description}</span>
+                ) : (
+                  <span className="text-app-muted">Max 200 characters</span>
+                )}
+                <span className="text-app-muted">{form.description.trim().length}/200</span>
+              </div>
             </div>
 
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                disabled={creating || !form.name.trim()}
-                className="px-8 py-3 rounded-xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm shadow-lg shadow-emerald-950/50 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2"
+                disabled={creating || !form.name.trim() || form.name.trim().length < 3}
+                className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm shadow-lg shadow-purple-950/50 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 {creating ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -178,7 +216,39 @@ const GroupCreate = () => {
             </div>
           </form>
         </div>
-      )}
+
+        {/* Live Preview Card */}
+        <div className="lg:col-span-5 flex flex-col justify-start">
+          <label className="block text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">
+            {t('groups.livePreview') || 'Live Preview'}
+          </label>
+          <div className="bg-app-card backdrop-blur border border-app rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between h-[320px]">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-linear-to-tr from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/40">
+                  {getGroupIcon(form.icon, 'w-7 h-7 text-white')}
+                </div>
+                <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-purple-300/30 text-purple-600 dark:text-purple-300 font-medium">
+                  1 {t('groups.membersCount')}
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold text-app mb-2">
+                {form.name.trim() || t('groups.groupName')}
+              </h3>
+              <p className="text-xs text-app-muted line-clamp-3 leading-relaxed">
+                {form.description.trim() || t('groups.groupDesc')}
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-app">
+              <div className="w-full py-2.5 px-4 rounded-xl font-semibold text-xs text-center bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 text-white opacity-90 cursor-default">
+                {t('groups.enterGroup')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* List of my groups */}
       <div>
@@ -208,7 +278,7 @@ const GroupCreate = () => {
                   <div>
                     <h3 className="font-bold text-app text-sm">{g.name}</h3>
                     <p className="text-xs text-app-muted">
-                      {g.members?.length || g.members_count || 1} {t('groups.membersCount')}
+                      {g.members_count || g.members?.length || 1} {t('groups.membersCount')}
                     </p>
                   </div>
                 </div>

@@ -1,37 +1,87 @@
 import { z } from 'zod';
-import { Group } from '../models/Group.js';
+import { Group, GROUP_ICONS } from '../models/Group.js';
 import { GroupMessage } from '../models/GroupMessage.js';
 import { User } from '../models/User.js';
+import { Notification } from '../models/Notification.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { env } from '../config/env.js';
 import { uploadFromBuffer } from '../config/cloudinary.js';
 import { parseCursorPagination, buildCursorResult } from '../utils/pagination.js';
 import { emitToGroup, emitToUser } from '../sockets/index.js';
 import { createNotification } from './notification.controller.js';
 
 export const createGroupSchema = z.object({
-  name: z.string().trim().min(1, 'Group name is required').max(100),
-  icon: z.enum(['users', 'rocket', 'globe', 'sparkles', 'star']).default('users'),
-  description: z.string().max(1000).optional(),
+  name: z
+    .string()
+    .trim()
+    .min(3, 'Group name must be at least 3 characters')
+    .max(40, 'Group name cannot exceed 40 characters'),
+  icon: z.enum(GROUP_ICONS).default('users'),
+  description: z
+    .string()
+    .trim()
+    .max(200, 'Description cannot exceed 200 characters')
+    .optional()
+    .default(''),
 });
+
+export const updateGroupSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3, 'Group name must be at least 3 characters')
+    .max(40, 'Group name cannot exceed 40 characters')
+    .optional(),
+  icon: z.enum(GROUP_ICONS).optional(),
+  description: z
+    .string()
+    .trim()
+    .max(200, 'Description cannot exceed 200 characters')
+    .optional(),
+});
+
+function sanitizeText(str) {
+  if (!str) return '';
+  // Remove non-printable control characters
+  return str.trim().replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+}
 
 /**
  * POST /api/groups
- * Create group (gated by ALLOW_GROUP_CREATION feature flag)
+ * Create group (open to all authenticated users)
  */
 export const createGroup = asyncHandler(async (req, res) => {
-  if (!env.ALLOW_GROUP_CREATION) {
-    throw ApiError.featureDisabled('Group creation is currently disabled', 'FEATURE_DISABLED');
-  }
-
   const currentUserId = req.userId;
   const { name, icon, description } = req.body;
 
+  const cleanName = sanitizeText(name);
+  const cleanDesc = sanitizeText(description);
+
+  if (cleanName.length < 3 || cleanName.length > 40) {
+    throw ApiError.badRequest('Group name must be between 3 and 40 characters');
+  }
+
+  // 1. Anti-spam: max 5 groups owned per user
+  const ownedCount = await Group.countDocuments({ owner: currentUserId });
+  if (ownedCount >= 5) {
+    throw ApiError.badRequest('You have reached the maximum limit of 5 owned groups');
+  }
+
+  // 2. Anti-spam: reject duplicate group names by the same owner (case-insensitive)
+  const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const duplicate = await Group.findOne({
+    owner: currentUserId,
+    name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
+  });
+  if (duplicate) {
+    throw ApiError.conflict('You already own a group with this name');
+  }
+
+  // 3. Create Group: owner is automatically admin and member
   const group = await Group.create({
-    name,
+    name: cleanName,
     icon: icon || 'users',
-    description: description || '',
+    description: cleanDesc,
     owner: currentUserId,
     admins: [currentUserId],
     members: [currentUserId],
@@ -46,7 +96,7 @@ export const createGroup = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/groups/available
- * Groups where current user is NOT a member, with has_pending_request flag
+ * Groups where current user is NOT a member
  */
 export const getAvailableGroups = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
@@ -92,7 +142,7 @@ export const getJoinedGroups = asyncHandler(async (req, res) => {
     description: g.description,
     owner: g.owner,
     members_count: (g.members || []).length,
-    is_owner: g.owner?._id === currentUserId || g.owner === currentUserId,
+    is_owner: String(g.owner?._id || g.owner) === String(currentUserId),
     is_admin: (g.admins || []).includes(currentUserId),
     createdAt: g.createdAt,
   }));
@@ -105,56 +155,176 @@ export const getJoinedGroups = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/groups/mine
- * Groups owned or administrated by current user
+ * Groups owned by current user
  */
 export const getMyGroups = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
 
-  const groups = await Group.find({
-    $or: [{ owner: currentUserId }, { admins: currentUserId }],
-  })
+  const groups = await Group.find({ owner: currentUserId })
     .sort({ createdAt: -1 })
     .lean();
 
+  const formatted = groups.map((g) => ({
+    ...g,
+    members_count: (g.members || []).length,
+    is_owner: true,
+    is_admin: true,
+  }));
+
   res.status(200).json({
     success: true,
-    data: groups,
+    data: formatted,
   });
 });
 
 /**
  * GET /api/groups/:id
- * Get single group details
+ * Get single group details with members list
  */
 export const getGroupById = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
   const group = await Group.findById(req.params.id)
-    .populate('owner', '_id full_name username profile_picture')
+    .populate('owner', '_id full_name username profile_picture bio')
     .lean();
 
   if (!group) {
     throw ApiError.notFound('Group not found');
   }
 
+  // Populate members
+  const memberUsers = await User.find({ _id: { $in: group.members || [] } })
+    .select('_id full_name username profile_picture bio')
+    .lean();
+
   const isMember = (group.members || []).includes(currentUserId);
   const isAdmin = (group.admins || []).includes(currentUserId);
+  const isOwner = String(group.owner?._id || group.owner) === String(currentUserId);
   const hasPending = (group.pending_requests || []).includes(currentUserId);
 
   res.status(200).json({
     success: true,
     data: {
       ...group,
+      members_list: memberUsers,
+      members_count: (group.members || []).length,
       is_member: isMember,
       is_admin: isAdmin,
+      is_owner: isOwner,
       has_pending_request: hasPending,
-      members_count: (group.members || []).length,
     },
   });
 });
 
 /**
+ * PUT /api/groups/:id
+ * Edit group name, description, icon (Owner or Admin only)
+ */
+export const updateGroup = asyncHandler(async (req, res) => {
+  const currentUserId = req.userId;
+  const groupId = req.params.id;
+  const { name, description, icon } = req.body;
+
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw ApiError.notFound('Group not found');
+  }
+
+  const isOwnerOrAdmin = group.owner === currentUserId || group.admins.includes(currentUserId);
+  if (!isOwnerOrAdmin) {
+    throw ApiError.forbidden('Only group owners or admins can edit group details');
+  }
+
+  if (name !== undefined) {
+    const cleanName = sanitizeText(name);
+    if (cleanName.length < 3 || cleanName.length > 40) {
+      throw ApiError.badRequest('Group name must be between 3 and 40 characters');
+    }
+
+    // Check duplicate name by same owner if changed
+    if (cleanName.toLowerCase() !== group.name.toLowerCase()) {
+      const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const duplicate = await Group.findOne({
+        _id: { $ne: group._id },
+        owner: group.owner,
+        name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
+      });
+      if (duplicate) {
+        throw ApiError.conflict('A group with this name already exists for this owner');
+      }
+    }
+    group.name = cleanName;
+  }
+
+  if (description !== undefined) {
+    group.description = sanitizeText(description);
+  }
+
+  if (icon !== undefined) {
+    if (!GROUP_ICONS.includes(icon)) {
+      throw ApiError.badRequest(`Invalid icon. Allowed icons: ${GROUP_ICONS.join(', ')}`);
+    }
+    group.icon = icon;
+  }
+
+  await group.save();
+
+  // Broadcast group update
+  emitToGroup(groupId, 'group:updated', {
+    groupId: group._id,
+    name: group.name,
+    icon: group.icon,
+    description: group.description,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: group,
+  });
+});
+
+/**
+ * DELETE /api/groups/:id
+ * Delete group (Owner only) - cascades messages and notifications
+ */
+export const deleteGroup = asyncHandler(async (req, res) => {
+  const currentUserId = req.userId;
+  const groupId = req.params.id;
+
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw ApiError.notFound('Group not found');
+  }
+
+  if (group.owner !== currentUserId) {
+    throw ApiError.forbidden('Only the group owner can delete the group');
+  }
+
+  // 1. Delete all messages for this group
+  await GroupMessage.deleteMany({ group: groupId });
+
+  // 2. Delete related notifications
+  await Notification.deleteMany({
+    $or: [
+      { group: groupId },
+      { type: { $in: ['group_join_request', 'group_request_accepted'] } },
+    ],
+  });
+
+  // 3. Delete the group document
+  await Group.findByIdAndDelete(groupId);
+
+  // 4. Real-time emit to group room
+  emitToGroup(groupId, 'group:deleted', { groupId });
+
+  res.status(200).json({
+    success: true,
+    message: 'Group deleted successfully along with messages and notifications',
+  });
+});
+
+/**
  * POST /api/groups/:id/join-request
- * Request to join a group
+ * Submit request to join group
  */
 export const requestToJoinGroup = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
@@ -175,18 +345,25 @@ export const requestToJoinGroup = asyncHandler(async (req, res) => {
   group.pending_requests.push(currentUserId);
   await group.save();
 
-  // Notify owner
-  await createNotification({
-    user: group.owner,
-    actor: currentUserId,
-    type: 'group_join_request',
-  });
+  // Create notifications for owner and admins
+  const notifyRecipients = Array.from(new Set([group.owner, ...(group.admins || [])])).filter(
+    (id) => id !== currentUserId
+  );
 
-  // Emit realtime notification to group owner room
-  await emitToUser(group.owner, 'group:request', {
-    groupId: group._id,
-    userId: currentUserId,
-  });
+  for (const recipientId of notifyRecipients) {
+    await createNotification({
+      user: recipientId,
+      actor: currentUserId,
+      type: 'group_join_request',
+      group: group._id,
+    });
+
+    await emitToUser(recipientId, 'group:request', {
+      groupId: group._id,
+      groupName: group.name,
+      userId: currentUserId,
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -196,7 +373,7 @@ export const requestToJoinGroup = asyncHandler(async (req, res) => {
 
 /**
  * DELETE /api/groups/:id/join-request
- * Cancel a pending join request
+ * Cancel own pending join request
  */
 export const cancelJoinRequest = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
@@ -264,7 +441,6 @@ export const acceptJoinRequest = asyncHandler(async (req, res) => {
     throw ApiError.notFound('Join request not found');
   }
 
-  // Move from pending_requests to members
   group.pending_requests = group.pending_requests.filter((id) => id !== targetUserId);
   if (!group.members.includes(targetUserId)) {
     group.members.push(targetUserId);
@@ -276,11 +452,19 @@ export const acceptJoinRequest = asyncHandler(async (req, res) => {
     user: targetUserId,
     actor: currentUserId,
     type: 'group_request_accepted',
+    group: group._id,
   });
 
   await emitToUser(targetUserId, 'group:request_accepted', {
     groupId: group._id,
     groupName: group.name,
+  });
+
+  // Notify group chat room of new member
+  emitToGroup(groupId, 'group:member_joined', {
+    groupId: group._id,
+    userId: targetUserId,
+    membersCount: group.members.length,
   });
 
   res.status(200).json({
@@ -317,8 +501,45 @@ export const rejectJoinRequest = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/groups/:id/leave
+ * Member leaves group (Non-owner only)
+ */
+export const leaveGroup = asyncHandler(async (req, res) => {
+  const currentUserId = req.userId;
+  const groupId = req.params.id;
+
+  const group = await Group.findById(groupId);
+  if (!group) {
+    throw ApiError.notFound('Group not found');
+  }
+
+  if (!group.members.includes(currentUserId)) {
+    throw ApiError.badRequest('You are not a member of this group');
+  }
+
+  if (group.owner === currentUserId) {
+    throw ApiError.badRequest('Group owner cannot leave the group. You can delete the group instead.');
+  }
+
+  group.members = group.members.filter((id) => id !== currentUserId);
+  group.admins = group.admins.filter((id) => id !== currentUserId);
+  await group.save();
+
+  emitToGroup(groupId, 'group:member_left', {
+    groupId: group._id,
+    userId: currentUserId,
+    membersCount: group.members.length,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'You have left the group',
+  });
+});
+
+/**
  * DELETE /api/groups/:id/members/:userId
- * Remove member or leave group
+ * Remove member (Owner or Admin only)
  */
 export const removeMember = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
@@ -329,37 +550,57 @@ export const removeMember = asyncHandler(async (req, res) => {
     throw ApiError.notFound('Group not found');
   }
 
-  const isSelfLeaving = targetUserId === currentUserId;
-  const isOwnerOrAdmin = group.owner === currentUserId || group.admins.includes(currentUserId);
+  // Self leaving
+  if (targetUserId === currentUserId) {
+    if (group.owner === currentUserId) {
+      throw ApiError.badRequest('Owner cannot leave. Use delete group instead.');
+    }
+    group.members = group.members.filter((id) => id !== currentUserId);
+    group.admins = group.admins.filter((id) => id !== currentUserId);
+    await group.save();
 
-  if (!isSelfLeaving && !isOwnerOrAdmin) {
-    throw ApiError.forbidden('You do not have permission to remove this member');
+    emitToGroup(groupId, 'group:member_left', {
+      groupId: group._id,
+      userId: currentUserId,
+      membersCount: group.members.length,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'You have left the group',
+    });
   }
 
-  // If owner is leaving, they cannot leave if there are other members without transferring ownership
+  const isOwner = group.owner === currentUserId;
+  const isAdmin = group.admins.includes(currentUserId);
+
+  if (!isOwner && !isAdmin) {
+    throw ApiError.forbidden('Only group owners or admins can remove members');
+  }
+
+  // Admins cannot remove the owner
   if (group.owner === targetUserId) {
-    if (group.members.length > 1) {
-      // Transfer ownership to next admin or member
-      const newOwner = group.admins.find((id) => id !== targetUserId) || group.members.find((id) => id !== targetUserId);
-      group.owner = newOwner;
-    } else {
-      // Last member is owner => delete the group
-      await Group.findByIdAndDelete(groupId);
-      await GroupMessage.deleteMany({ group: groupId });
-      return res.status(200).json({
-        success: true,
-        message: 'Group deleted as the owner left',
-      });
-    }
+    throw ApiError.forbidden('Cannot remove the group owner');
+  }
+
+  // Admins cannot remove other admins (only owner can)
+  if (group.admins.includes(targetUserId) && !isOwner) {
+    throw ApiError.forbidden('Only the owner can remove group admins');
   }
 
   group.members = group.members.filter((id) => id !== targetUserId);
   group.admins = group.admins.filter((id) => id !== targetUserId);
   await group.save();
 
+  emitToGroup(groupId, 'group:member_removed', {
+    groupId: group._id,
+    userId: targetUserId,
+    membersCount: group.members.length,
+  });
+
   res.status(200).json({
     success: true,
-    message: isSelfLeaving ? 'You left the group' : 'Member removed successfully',
+    message: 'Member removed successfully',
   });
 });
 
@@ -419,7 +660,7 @@ export const sendGroupMessage = asyncHandler(async (req, res) => {
     throw ApiError.forbidden('You must be a member of this group to send messages');
   }
 
-  let text = req.body.text || '';
+  let text = sanitizeText(req.body.text || '');
   let mediaUrl = req.body.media_url || '';
 
   if (req.file) {
@@ -449,7 +690,7 @@ export const sendGroupMessage = asyncHandler(async (req, res) => {
     .populate('sender', '_id full_name username profile_picture')
     .lean();
 
-  // Real-time broadcast to all members connected in the group room
+  // Broadcast to all members in the group room
   emitToGroup(groupId, 'group:message', populatedMessage);
 
   res.status(201).json({

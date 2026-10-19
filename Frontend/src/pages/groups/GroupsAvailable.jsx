@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Check } from 'lucide-react';
+import { Users, UserPlus, Check, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { groupsApi } from '../../api/axios';
 import Loading from '../../components/Loading';
 import EmptyState from '../../components/EmptyState';
+import CreateGroupModal from '../../components/CreateGroupModal';
 import { getGroupIcon } from '../../utils/groupIcons';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -12,6 +13,7 @@ const GroupsAvailable = () => {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -61,14 +63,25 @@ const GroupsAvailable = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex flex-col items-center mb-10 text-center">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-pink-400 dark:via-purple-300 dark:to-indigo-300 tracking-wide mb-2">
-          {t('groups.availableTitle')}
-        </h1>
-        <p className="text-app-muted text-sm max-w-md">
-          {t('groups.availableSubtitle')}
-        </p>
+      {/* Header with Prominent Create Button */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10 pb-6 border-b border-app">
+        <div className="text-center sm:text-start">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-pink-400 dark:via-purple-300 dark:to-indigo-300 tracking-wide mb-2">
+            {t('groups.availableTitle')}
+          </h1>
+          <p className="text-app-muted text-sm max-w-md">
+            {t('groups.availableSubtitle')}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="px-6 py-3 rounded-2xl font-bold text-sm bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white shadow-lg shadow-purple-900/30 hover:shadow-purple-700/50 transition-all duration-300 active:scale-95 cursor-pointer flex items-center gap-2 shrink-0"
+        >
+          <Plus className="w-5 h-5" />
+          <span>{t('groups.createGroupAction')}</span>
+        </button>
       </div>
 
       {/* Content */}
@@ -77,8 +90,10 @@ const GroupsAvailable = () => {
       ) : groups.length === 0 ? (
         <EmptyState
           title={t('groups.emptyAvailable')}
-          description={t('groups.emptyAvailableDesc')}
+          description={t('groups.emptyAvailablePrompt')}
           icon={Users}
+          actionText={t('groups.createGroupAction')}
+          onAction={() => setIsCreateModalOpen(true)}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -127,13 +142,13 @@ const GroupsAvailable = () => {
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : isPending ? (
                       <>
-                        <Check className="w-4 h-4 text-emerald-400" />
+                        <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                         <span>{t('groups.requestSent')}</span>
                       </>
                     ) : (
                       <>
                         <UserPlus className="w-4 h-4" />
-                        <span>{t('groups.joinRequest')}</span>
+                        <span>{t('groups.joinRequestBtn')}</span>
                       </>
                     )}
                   </button>
@@ -143,6 +158,13 @@ const GroupsAvailable = () => {
           })}
         </div>
       )}
+
+      {/* Modal for Group Creation */}
+      <CreateGroupModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreated={() => fetchGroups()}
+      />
     </div>
   );
 };

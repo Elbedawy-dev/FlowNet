@@ -1,4 +1,4 @@
-import { Users, Rocket, Globe, Sparkles, Star } from 'lucide-react';
+import { Users, Rocket, Globe, Sparkles, Star, Code, BookOpen, Heart } from 'lucide-react';
 
 export const getGroupIcon = (iconName, className = 'w-6 h-6') => {
   switch (iconName) {
@@ -10,6 +10,12 @@ export const getGroupIcon = (iconName, className = 'w-6 h-6') => {
       return <Sparkles className={className} />;
     case 'star':
       return <Star className={className} />;
+    case 'code':
+      return <Code className={className} />;
+    case 'book':
+      return <BookOpen className={className} />;
+    case 'heart':
+      return <Heart className={className} />;
     case 'users':
     default:
       return <Users className={className} />;

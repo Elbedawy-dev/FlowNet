@@ -15,6 +15,5 @@ export const env = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
-  ALLOW_GROUP_CREATION: process.env.ALLOW_GROUP_CREATION === 'true',
   SEED_OWNER_ID: process.env.SEED_OWNER_ID || '',
 };
