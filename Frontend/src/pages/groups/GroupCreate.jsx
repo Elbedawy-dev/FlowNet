@@ -18,6 +18,8 @@ import { getGroupIcon } from '../../utils/groupIcons';
 import Loading from '../../components/Loading';
 import { useLanguage } from '../../context/LanguageContext';
 
+//https://flownet-backend.vercel.app/api/realtime/token
+
 const ICONS = [
   { key: 'users', labelKey: 'groups.iconUsers', icon: Users },
   { key: 'rocket', labelKey: 'groups.iconRocket', icon: Rocket },

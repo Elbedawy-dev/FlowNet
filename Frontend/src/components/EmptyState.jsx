@@ -5,16 +5,18 @@ const EmptyState = ({
   icon: Icon = Sparkles,
   title = 'No items found',
   message = 'There is nothing to display here yet.',
+  description,
   actionText,
   onAction,
 }) => {
+  const displayMessage = description || message;
   return (
     <div className="w-full flex flex-col items-center justify-center p-8 text-center bg-app-card text-app rounded-2xl border border-app shadow-md">
       <div className="w-16 h-16 rounded-full bg-linear-to-br from-indigo-500/20 to-purple-600/30 flex items-center justify-center border border-purple-400/30 mb-4 shadow-sm">
         <Icon className="w-8 h-8 text-purple-600 dark:text-purple-300" />
       </div>
       <h3 className="text-lg font-bold text-app mb-1">{title}</h3>
-      <p className="text-sm text-app-muted max-w-sm mb-4">{message}</p>
+      <p className="text-sm text-app-muted max-w-sm mb-4">{displayMessage}</p>
       {actionText && onAction && (
         <button
           onClick={onAction}

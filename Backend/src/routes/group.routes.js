@@ -37,6 +37,7 @@ const createGroupLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { keyGeneratorIpFallback: false },
   keyGenerator: (req) => req.userId || req.ip,
 });
 
