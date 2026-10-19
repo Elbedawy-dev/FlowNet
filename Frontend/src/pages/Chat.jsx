@@ -288,7 +288,7 @@ const Chat = () => {
               className="mb-3 opacity-80"
             />
             <p className="text-sm font-medium">{t("messages.sayHello", { name: otherUser?.full_name || "your friend" })}</p>
-            <p className="text-xs text-purple-300/40 mt-1">{t("messages.encryptedNotice")}</p>
+            <p className="text-xs text-app-muted mt-1">{t("messages.encryptedNotice")}</p>
           </div>
         ) : (
           messages.map((msg, index) => {
@@ -303,7 +303,7 @@ const Chat = () => {
                 {/* Date separator */}
                 {isDifferentDay && (
                   <div className="flex items-center justify-center my-4">
-                    <span className="text-[11px] text-purple-300/50 bg-white/5 border border-purple-500/20 px-3 py-0.5 rounded-full">
+                    <span className="text-[11px] text-app-muted bg-app-card border border-app px-3 py-0.5 rounded-full shadow-xs">
                       {moment(msg.createdAt).calendar(null, {
                         sameDay: "[Today]",
                         lastDay: "[Yesterday]",

@@ -312,7 +312,7 @@ const Profile = () => {
                     disabled={followLoading}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold transition-all active:scale-95 cursor-pointer shadow-md ${
                       profile.is_following
-                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-600 hover:text-white"
+                        ? "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 hover:bg-rose-600 hover:text-white"
                         : "bg-linear-to-r from-red-500 to-pink-600 text-white shadow-[0_0_15px_rgba(244,63,94,0.5)]"
                     }`}
                   >
@@ -331,7 +331,7 @@ const Profile = () => {
                   <button
                     onClick={handleConnectionRequest}
                     disabled={connectLoading}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-app text-app text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-app-card hover:bg-purple-500/10 border border-app text-app text-xs font-semibold transition-all active:scale-95 cursor-pointer"
                   >
                     {profile.connection_status === "connected"
                       ? `${t("profile.connected") || "Connected"} 🤝`
@@ -347,13 +347,13 @@ const Profile = () => {
                     onClick={handleBlockToggle}
                     className={`p-2.5 rounded-2xl text-xs font-medium transition-all active:scale-95 cursor-pointer border ${
                       profile.is_blocked_by_me
-                        ? "bg-rose-600/30 border-rose-500/50 text-rose-300 hover:bg-rose-600/50"
-                        : "bg-purple-950/60 border-purple-800/60 text-purple-300 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/30"
+                        ? "bg-rose-100 dark:bg-rose-600/30 border-rose-300 dark:border-rose-500/50 text-rose-700 dark:text-rose-300 hover:bg-rose-600 hover:text-white"
+                        : "bg-app-card border border-app text-app-muted hover:bg-rose-500/20 hover:text-rose-600 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-500/30"
                     }`}
                     title={profile.is_blocked_by_me ? (t("profile.unblock") || "Unblock user") : (t("profile.block") || "Block user")}
                   >
                     {profile.is_blocked_by_me ? (
-                      <span className="flex items-center gap-1 text-rose-400">
+                      <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
                         <ShieldAlert size={15} /> {t("profile.unblock") || "Unblock"}
                       </span>
                     ) : (
@@ -443,8 +443,8 @@ const Profile = () => {
                 onClick={() => setActiveTab("POSTS")}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold tracking-wider transition-all cursor-pointer ${
                   activeTab === "POSTS"
-                    ? "bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.7)]"
-                    : "bg-white/5 text-app-muted hover:bg-white/10 border border-app"
+                    ? "bg-purple-600 text-white shadow-md"
+                    : "bg-app-card text-app-muted hover:text-app hover:bg-purple-500/10 border border-app"
                 }`}
               >
                 <FileText size={15} /> {t("profile.postsTab") || "POSTS"}
@@ -454,8 +454,8 @@ const Profile = () => {
                 onClick={() => setActiveTab("MEDIA")}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold tracking-wider transition-all cursor-pointer ${
                   activeTab === "MEDIA"
-                    ? "bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.7)]"
-                    : "bg-white/5 text-app-muted hover:bg-white/10 border border-app"
+                    ? "bg-purple-600 text-white shadow-md"
+                    : "bg-app-card text-app-muted hover:text-app hover:bg-purple-500/10 border border-app"
                 }`}
               >
                 <Grid size={15} /> {t("profile.mediaTab") || "MEDIA"}

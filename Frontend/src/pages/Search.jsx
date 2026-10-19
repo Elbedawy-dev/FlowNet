@@ -83,10 +83,10 @@ const Search = () => {
     <div className="min-h-full py-10 px-4 flex flex-col items-center text-app pb-32">
       {/* Header Title */}
       <div className="text-center max-w-xl mb-8">
-        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-pink-500/10 border border-pink-500/20 mb-3 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
-          <Compass className="w-8 h-8 text-pink-400 animate-pulse" />
+        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-pink-500/10 border border-pink-500/30 mb-3 shadow-md">
+          <Compass className="w-8 h-8 text-pink-600 dark:text-pink-400 animate-pulse" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300 drop-shadow-[0_0_15px_rgba(236,72,153,0.4)]">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-pink-400 dark:via-purple-300 dark:to-indigo-300">
           {t("search.title")}
         </h1>
         <p className="text-app-muted text-sm mt-2">

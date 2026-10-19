@@ -145,12 +145,12 @@ const PostDetails = () => {
       <div className="w-full max-w-2xl flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-app text-app cursor-pointer"
+          className="p-2 rounded-full bg-app-card hover:bg-purple-500/10 transition-all border border-app text-app cursor-pointer"
           aria-label={t("common.back") || "Go back"}
         >
           <ArrowLeft size={20} className="rtl:rotate-180" />
         </button>
-        <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+        <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-indigo-300 dark:via-purple-300 dark:to-pink-300">
           {t("posts.postDetails") || "Post Details"}
         </h1>
       </div>
@@ -168,7 +168,7 @@ const PostDetails = () => {
       <div className="w-full max-w-2xl bg-app-card backdrop-blur-xl border border-app rounded-3xl p-6 shadow-app-glow">
         <h2 className="text-lg font-bold text-app mb-6 flex items-center justify-between pb-3 border-b border-app">
           <span>{t("posts.comments") || "Comments"} 💬</span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+          <span className="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-300/30">
             {comments.length}
           </span>
         </h2>
@@ -187,7 +187,7 @@ const PostDetails = () => {
               return (
                 <div
                   key={comment._id}
-                  className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-app hover:border-purple-400/40 transition-all"
+                  className="flex items-start gap-3 p-3.5 rounded-2xl bg-app-card border border-app hover:border-purple-400/40 transition-all shadow-xs"
                 >
                   <Avatar
                     src={comment.user?.profile_picture}

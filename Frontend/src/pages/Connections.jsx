@@ -121,10 +121,10 @@ const Connections = () => {
     <div className="min-h-full py-10 px-4 flex flex-col items-center text-app pb-32">
       {/* Header Title */}
       <div className="text-center max-w-xl mb-8">
-        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-3 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-          <Star className="w-8 h-8 text-amber-400 fill-amber-400/20 animate-pulse" />
+        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-3 shadow-md">
+          <Star className="w-8 h-8 text-amber-600 dark:text-amber-400 fill-amber-400/20 animate-pulse" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-indigo-300">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-amber-600 via-pink-600 to-purple-600 dark:from-amber-300 dark:via-pink-400 dark:to-indigo-300">
           {t("connections.title")}
         </h1>
         <p className="text-app-muted text-sm mt-2">
@@ -232,7 +232,7 @@ const Connections = () => {
                         </button>
                         <button
                           onClick={() => handleRejectPending(user._id)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-2xl bg-app-input hover:bg-rose-600/30 text-rose-300 border border-app text-xs font-semibold active:scale-95 transition cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-2xl bg-app-input hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-app text-xs font-semibold active:scale-95 transition cursor-pointer"
                         >
                           <X size={14} /> {t("connections.reject")}
                         </button>

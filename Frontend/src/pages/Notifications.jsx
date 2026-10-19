@@ -159,13 +159,13 @@ const Notifications = () => {
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex flex-col items-center mb-8 text-center">
-        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-indigo-500/20 border border-purple-500/30 mb-3 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-          <Bell className="w-7 h-7 text-pink-400 animate-pulse" />
+        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-linear-to-tr from-pink-500/20 via-purple-500/20 to-indigo-500/20 border border-purple-500/30 mb-3 shadow-md">
+          <Bell className="w-7 h-7 text-pink-600 dark:text-pink-400 animate-pulse" />
         </div>
-        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300">
+        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-pink-400 dark:via-purple-300 dark:to-indigo-300">
           {t('notifications.title') || 'Notifications'}
         </h1>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-app-muted text-sm mt-1">
           {t('notifications.subtitle') || 'Stay updated with your cosmic interactions and network activities'}
         </p>
 

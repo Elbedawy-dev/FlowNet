@@ -327,7 +327,7 @@ const GroupChat = () => {
                     <button
                       type="button"
                       onClick={() => handleAcceptRequest(reqUser._id)}
-                      className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition cursor-pointer"
+                      className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 transition cursor-pointer"
                       title={t('groups.accept')}
                     >
                       <Check className="w-3.5 h-3.5" />
@@ -335,7 +335,7 @@ const GroupChat = () => {
                     <button
                       type="button"
                       onClick={() => handleRejectRequest(reqUser._id)}
-                      className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition cursor-pointer"
+                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 transition cursor-pointer"
                       title={t('groups.reject')}
                     >
                       <X className="w-3.5 h-3.5" />
@@ -387,13 +387,13 @@ const GroupChat = () => {
                 <div
                   className={`max-w-[78%] sm:max-w-[65%] rounded-2xl p-3 shadow-md ${
                     isMe
-                      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-ee-none'
+                      ? 'bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 text-white rounded-ee-none'
                       : 'bg-app-card border border-app text-app rounded-es-none'
                   }`}
                 >
                   {/* Sender Name (never raw IDs!) */}
                   {!isMe && (
-                    <div className="text-xs font-bold text-pink-400 mb-1">
+                    <div className="text-xs font-bold text-pink-600 dark:text-pink-400 mb-1">
                       {senderName}
                     </div>
                   )}

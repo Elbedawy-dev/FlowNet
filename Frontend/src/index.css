@@ -65,8 +65,8 @@
   --app-sidebar: rgba(255, 255, 255, 0.95);
   --app-glow: 0 8px 24px rgba(124, 58, 237, 0.10);
   --app-ring-active: rgba(126, 34, 206, 0.6);
-  --skeleton-base: #eef0f6;
-  --skeleton-shine: #f8f9fc;
+  --skeleton-base: #f4f5f9;
+  --skeleton-shine: #fafbff;
 }
 
 /* Midnight + Dark */
@@ -111,8 +111,8 @@
   --app-sidebar: rgba(255, 255, 255, 0.95);
   --app-glow: 0 8px 24px rgba(99, 102, 241, 0.10);
   --app-ring-active: rgba(67, 56, 202, 0.6);
-  --skeleton-base: #eef0f6;
-  --skeleton-shine: #f8f9fc;
+  --skeleton-base: #f4f5f9;
+  --skeleton-shine: #fafbff;
 }
 
 @theme {

@@ -34,7 +34,7 @@ const GroupsJoined = () => {
     <div className="max-w-6xl mx-auto px-4 py-8 bg-app-page text-app min-h-full pb-32">
       {/* Header */}
       <div className="flex flex-col items-center mb-10 text-center">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300 tracking-wide mb-2">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-pink-400 dark:via-purple-300 dark:to-indigo-300 tracking-wide mb-2">
           ⚡ {t('groups.myGroupsTitle') || 'My Groups'} ⚡
         </h1>
         <p className="text-app-muted text-sm max-w-md">
@@ -67,22 +67,22 @@ const GroupsJoined = () => {
               <div>
                 {/* Top Icon & Role Badge */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/40 group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-14 h-14 rounded-2xl bg-linear-to-tr from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/40 group-hover:scale-105 transition-transform duration-300">
                     {getGroupIcon(group.icon, 'w-7 h-7 text-white')}
                   </div>
 
                   <div className="flex items-center gap-2">
                     {group.is_owner ? (
-                      <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-medium">
+                      <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-300 font-medium">
                         <Crown className="w-3 h-3" /> {t('groups.owner') || 'Owner'}
                       </span>
                     ) : group.is_admin ? (
-                      <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-medium">
+                      <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 font-medium">
                         <Shield className="w-3 h-3" /> {t('groups.admin') || 'Admin'}
                       </span>
                     ) : null}
 
-                    <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-app text-purple-300 font-medium">
+                    <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-purple-300/30 text-purple-600 dark:text-purple-300 font-medium">
                       {group.members_count || 0} {t('groups.members') || 'members'}
                     </div>
                   </div>

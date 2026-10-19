@@ -34,11 +34,11 @@ const ConfirmModal = ({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="w-full max-w-md bg-linear-to-b from-[#1a1f4d] via-[#12173d] to-[#0b0f3b] border border-purple-500/40 rounded-3xl p-6 shadow-[0_0_35px_rgba(168,85,247,0.4)] text-white relative"
+          className="w-full max-w-md bg-app-card border border-app rounded-2xl p-6 shadow-2xl text-app relative"
         >
           <button
             onClick={onClose}
-            className="absolute top-4 end-4 text-purple-300 hover:text-white p-1 rounded-full cursor-pointer"
+            className="absolute top-4 end-4 text-app-muted hover:text-app p-1 rounded-full cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -47,24 +47,24 @@ const ConfirmModal = ({
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
                 danger
-                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                  : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                  : 'bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/30'
               }`}
             >
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold">{title}</h3>
+              <h3 className="text-lg font-bold text-app">{title}</h3>
             </div>
           </div>
 
-          <p className="text-sm text-purple-200/80 mb-4 leading-relaxed">
+          <p className="text-sm text-app-muted mb-4 leading-relaxed">
             {message}
           </p>
 
           {requireInputText && (
             <div className="mb-6">
-              <label className="block text-xs text-rose-300 mb-1.5 font-medium">
+              <label className="block text-xs text-rose-600 dark:text-rose-300 mb-1.5 font-medium">
                 Type <span className="font-mono font-bold underline">{requireInputText}</span> to confirm:
               </label>
               <input
@@ -72,7 +72,7 @@ const ConfirmModal = ({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={`Type ${requireInputText}`}
-                className="w-full px-3.5 py-2.5 bg-black/40 border border-rose-500/40 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 transition placeholder-gray-500"
+                className="w-full px-3.5 py-2.5 bg-app-input border border-rose-400 dark:border-rose-500/40 rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 transition placeholder-app-muted"
               />
             </div>
           )}
@@ -81,7 +81,7 @@ const ConfirmModal = ({
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="px-4 py-2 rounded-xl text-sm border border-purple-500/30 text-purple-200 hover:bg-white/5 transition cursor-pointer"
+              className="px-4 py-2 rounded-xl text-sm border border-app text-app hover:bg-purple-500/10 transition cursor-pointer"
             >
               {cancelText}
             </button>

@@ -66,9 +66,9 @@ const RecentMessages = ({ mobile = false }) => {
   // Mobile rendering (collapsible card with horizontal avatar strip & expandable list)
   if (mobile) {
     return (
-      <div className="w-full rounded-2xl bg-surface-glass backdrop-blur-xl border border-app shadow-app-glow overflow-hidden">
+      <div className="w-full rounded-2xl bg-app-card text-app shadow-md border border-app overflow-hidden">
         {/* Mobile Header Bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-app">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-app bg-app-card">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <MessageSquare size={16} />
@@ -105,7 +105,7 @@ const RecentMessages = ({ mobile = false }) => {
         </div>
 
         {/* Horizontal Avatar Strip (always visible on mobile) */}
-        <div className="flex items-center gap-3 px-4 py-2.5 overflow-x-auto no-scrollbar bg-surface-strong/20">
+        <div className="flex items-center gap-3 px-4 py-2.5 overflow-x-auto no-scrollbar bg-app-card border-b border-app">
           {loading ? (
             <div className="py-2 text-xs text-app-muted">{t("messages.loadingMessages") || "Loading messages..."}</div>
           ) : messages.length === 0 ? (
@@ -200,12 +200,12 @@ const RecentMessages = ({ mobile = false }) => {
   // Desktop sticky card rendering
   return (
     <motion.div
-      className="w-72 flex flex-col text-sm bg-surface-glass backdrop-blur-xl rounded-3xl shadow-app-glow border border-app overflow-hidden max-h-[calc(100vh-6rem)]"
+      className="w-72 flex flex-col text-sm bg-app-card text-app rounded-2xl shadow-md border border-app overflow-hidden max-h-[calc(100vh-6rem)]"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h3 className="font-bold text-app px-5 py-4 border-b border-app bg-surface-strong/30 backdrop-blur-md flex items-center justify-between">
+      <h3 className="font-bold text-app px-5 py-4 border-b border-app bg-app-card flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span>{t("messages.title") || "Messages"}</span>
           {!isConnected && (

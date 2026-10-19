@@ -241,10 +241,10 @@ const Settings = () => {
     <div className="max-w-4xl mx-auto px-4 py-8 bg-app-page text-app min-h-full pb-32">
       {/* Header */}
       <div className="flex flex-col items-center mb-8 text-center">
-        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-linear-to-tr from-amber-500/20 via-purple-500/20 to-indigo-500/20 border border-app mb-3 shadow-app-glow">
-          <Zap className="w-7 h-7 text-amber-400 animate-pulse" />
+        <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-3 shadow-md">
+          <Zap className="w-7 h-7 text-amber-600 dark:text-amber-400 animate-pulse" />
         </div>
-        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-purple-300 to-indigo-300">
+        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-amber-400 dark:via-purple-300 dark:to-indigo-300">
           {t('settings.title') || 'Settings'}
         </h1>
         <p className="text-app-muted text-sm mt-1">

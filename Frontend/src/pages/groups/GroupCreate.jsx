@@ -77,7 +77,7 @@ const GroupCreate = () => {
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex flex-col items-center mb-8 text-center">
-        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 tracking-wide mb-2">
+        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-emerald-600 via-teal-600 to-indigo-600 dark:from-emerald-400 dark:via-teal-300 dark:to-indigo-300 tracking-wide mb-2">
           {t('groups.createTitle')}
         </h1>
         <p className="text-app-muted text-sm">

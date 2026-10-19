@@ -96,7 +96,7 @@ const CreatePost = () => {
           <ArrowLeft size={18} className="rtl:rotate-180" />
           <span>{t("common.back")}</span>
         </button>
-        <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+        <h1 className="text-xl font-bold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-indigo-300 dark:via-purple-300 dark:to-pink-300">
           {t("home.createPost")}
         </h1>
         <span className="w-16" />
@@ -158,7 +158,7 @@ const CreatePost = () => {
 
         {/* Action Toolbar */}
         <div className="flex items-center justify-between pt-4 border-t border-app mt-4">
-          <label className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-app-input hover:bg-white/10 border border-app text-app text-xs font-medium cursor-pointer transition-all active:scale-95 shadow-sm">
+          <label className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-app-input hover:bg-purple-500/10 border border-app text-app text-xs font-medium cursor-pointer transition-all active:scale-95 shadow-sm">
             <Image size={17} className="text-pink-400" />
             <span>{t("posts.uploadImages")} ({selectedImages.length}/4)</span>
             <input

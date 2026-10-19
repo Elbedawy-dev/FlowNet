@@ -63,7 +63,7 @@ const GroupsAvailable = () => {
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex flex-col items-center mb-10 text-center">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300 tracking-wide mb-2">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-pink-400 dark:via-purple-300 dark:to-indigo-300 tracking-wide mb-2">
           {t('groups.availableTitle')}
         </h1>
         <p className="text-app-muted text-sm max-w-md">
@@ -94,10 +94,10 @@ const GroupsAvailable = () => {
                 <div>
                   {/* Top Icon & Badge */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/40 group-hover:scale-105 transition-transform duration-300">
+                    <div className="w-14 h-14 rounded-2xl bg-linear-to-tr from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-900/40 group-hover:scale-105 transition-transform duration-300">
                       {getGroupIcon(group.icon, 'w-7 h-7 text-white')}
                     </div>
-                    <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 font-medium">
+                    <div className="text-xs px-3 py-1 rounded-full bg-purple-500/10 border border-purple-300/30 text-purple-600 dark:text-purple-300 font-medium">
                       {group.members_count || 0} {t('groups.membersCount')}
                     </div>
                   </div>
@@ -119,8 +119,8 @@ const GroupsAvailable = () => {
                     disabled={isProcessing}
                     className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 active:scale-95 shadow-md ${
                       isPending
-                        ? 'bg-purple-950/60 border border-purple-500/40 text-purple-200 hover:bg-rose-950/50 hover:border-rose-500/40 hover:text-rose-300'
-                        : 'bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white shadow-purple-950/50'
+                        ? 'bg-purple-100 dark:bg-purple-950/60 border border-purple-300 dark:border-purple-500/40 text-purple-700 dark:text-purple-200 hover:bg-rose-100 dark:hover:bg-rose-950/50 hover:border-rose-300 dark:hover:border-rose-500/40 hover:text-rose-700 dark:hover:text-rose-300'
+                        : 'bg-linear-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white shadow-purple-950/50'
                     }`}
                   >
                     {isProcessing ? (

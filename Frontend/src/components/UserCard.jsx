@@ -74,7 +74,7 @@ const UserCard = ({
           disabled={isFollowLoading}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-2xl text-xs font-semibold transition-all active:scale-95 cursor-pointer shadow-md ${
             isFollowing
-              ? 'bg-purple-900/60 text-purple-200 border border-purple-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/30'
+              ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-500/40 hover:bg-rose-100 dark:hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-500/30'
               : 'bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
           }`}
         >
@@ -93,7 +93,7 @@ const UserCard = ({
           onClick={handleMessageClick}
           aria-label={t('messages.typeMessage') || 'Send message'}
           title={t('messages.typeMessage') || 'Send message'}
-          className="p-2 rounded-2xl bg-app-input hover:bg-white/10 border border-app text-app transition-all active:scale-95 cursor-pointer shadow-sm"
+          className="p-2 rounded-2xl bg-app-input hover:bg-purple-500/10 border border-app text-app transition-all active:scale-95 cursor-pointer shadow-sm"
         >
           <MessageCircle size={16} />
         </button>
