@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Realtime } from 'ably';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import api from '../api/axios';
@@ -39,7 +39,9 @@ export const SocketProvider = ({ children }) => {
 
   const currentUserId = currentUser?._id || user?.id || null;
   const currentUserIdRef = useRef(currentUserId);
-  currentUserIdRef.current = currentUserId;
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   // Initialize ONE Ably.Realtime instance after Clerk sign-in
   useEffect(() => {
@@ -156,44 +158,47 @@ export const SocketProvider = ({ children }) => {
   }, [ably, connected, currentUserId]);
 
   // Backwards compatibility socket object for legacy components
-  const legacySocket = useRef({
-    on: (event, handler) => {
-      if (!ablyRef.current) return;
-      const uid = currentUserIdRef.current;
-      let channelName = 'feed';
-      if (USER_EVENTS.has(event) || event.startsWith('user:')) {
-        channelName = uid ? `user:${uid}` : 'feed';
-      }
-      const channel = ablyRef.current.channels.get(channelName);
-      const listener = (msg) => {
-        if (import.meta.env.DEV) {
-          console.log(`[Ably Dev] [Legacy on] Channel "${channelName}" Event "${event}":`, msg.data);
+  const legacySocket = useMemo(
+    () => ({
+      on: (event, handler) => {
+        if (!ablyRef.current) return;
+        const uid = currentUserIdRef.current;
+        let channelName = 'feed';
+        if (USER_EVENTS.has(event) || event.startsWith('user:')) {
+          channelName = uid ? `user:${uid}` : 'feed';
         }
-        handler(msg.data !== undefined ? msg.data : msg);
-      };
-      channel.subscribe(event, listener);
-      activeSubscriptionsRef.current.set(`${channelName}:${event}:${handler}`, { channel, listener });
-    },
-    off: (event, handler) => {
-      const uid = currentUserIdRef.current;
-      let channelName = 'feed';
-      if (USER_EVENTS.has(event) || event.startsWith('user:')) {
-        channelName = uid ? `user:${uid}` : 'feed';
-      }
-      const key = `${channelName}:${event}:${handler}`;
-      const entry = activeSubscriptionsRef.current.get(key);
-      if (entry) {
-        entry.channel.unsubscribe(event, entry.listener);
-        activeSubscriptionsRef.current.delete(key);
-      }
-    },
-    emit: (event, payload) => {
-      // For room join/leave in legacy code, Ably uses channels.get(name)
-      if (import.meta.env.DEV) {
-        console.log(`[Ably Dev] [Legacy emit] Event "${event}":`, payload);
-      }
-    },
-  }).current;
+        const channel = ablyRef.current.channels.get(channelName);
+        const listener = (msg) => {
+          if (import.meta.env.DEV) {
+            console.log(`[Ably Dev] [Legacy on] Channel "${channelName}" Event "${event}":`, msg.data);
+          }
+          handler(msg.data !== undefined ? msg.data : msg);
+        };
+        channel.subscribe(event, listener);
+        activeSubscriptionsRef.current.set(`${channelName}:${event}:${handler}`, { channel, listener });
+      },
+      off: (event, handler) => {
+        const uid = currentUserIdRef.current;
+        let channelName = 'feed';
+        if (USER_EVENTS.has(event) || event.startsWith('user:')) {
+          channelName = uid ? `user:${uid}` : 'feed';
+        }
+        const key = `${channelName}:${event}:${handler}`;
+        const entry = activeSubscriptionsRef.current.get(key);
+        if (entry) {
+          entry.channel.unsubscribe(event, entry.listener);
+          activeSubscriptionsRef.current.delete(key);
+        }
+      },
+      emit: (event, payload) => {
+        // For room join/leave in legacy code, Ably uses channels.get(name)
+        if (import.meta.env.DEV) {
+          console.log(`[Ably Dev] [Legacy emit] Event "${event}":`, payload);
+        }
+      },
+    }),
+    []
+  );
 
   return (
     <SocketContext.Provider
@@ -225,7 +230,9 @@ export const useSocket = () => useContext(SocketContext);
 export const useSocketEvent = (event, handler) => {
   const { ably, connected, userId } = useSocket();
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+  useEffect(() => {
+    handlerRef.current = handler;
+  });
 
   useEffect(() => {
     if (!ably || !connected || !event) return;
@@ -268,7 +275,9 @@ export const useSocketEvent = (event, handler) => {
 export const useRoom = (type, id, handlers = {}) => {
   const { ably, connected } = useSocket();
   const handlersRef = useRef(handlers);
-  handlersRef.current = handlers;
+  useEffect(() => {
+    handlersRef.current = handlers;
+  });
 
   const channelName = type && id ? `${type}:${id}` : null;
 
