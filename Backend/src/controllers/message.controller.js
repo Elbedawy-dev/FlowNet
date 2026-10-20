@@ -68,10 +68,12 @@ export const getRecentMessages = asyncHandler(async (req, res) => {
     };
 
     recentList.push({
-      _id: msg._id,
-      from_user_id: partnerProfile, // Formatted as other user for frontend compatibility
+      _id: msg._id.toString(),
+      from_user_id: String(msg.from_user_id),
+      to_user_id: String(msg.to_user_id),
+      from_user: userMap.get(msg.from_user_id) || { _id: String(msg.from_user_id) },
+      to_user: userMap.get(msg.to_user_id) || { _id: String(msg.to_user_id) },
       other_user: partnerProfile,
-      to_user_id: msg.to_user_id,
       text: msg.is_unsent ? '' : msg.text,
       message_type: msg.message_type,
       media_url: msg.is_unsent ? '' : msg.media_url,
@@ -245,13 +247,37 @@ export const sendMessage = asyncHandler(async (req, res) => {
     seen: false,
   });
 
-  const messageData = message.toObject();
+  const senderUser = await User.findById(currentUserId)
+    .select('_id full_name username profile_picture is_verified')
+    .lean();
+
+  const messageData = {
+    _id: message._id.toString(),
+    from_user_id: String(currentUserId),
+    to_user_id: String(targetUserId),
+    text: message.text,
+    message_type: message.message_type,
+    media_url: message.media_url,
+    seen: false,
+    is_unsent: false,
+    createdAt: message.createdAt.toISOString ? message.createdAt.toISOString() : message.createdAt,
+    from_user: senderUser || { _id: String(currentUserId) },
+    to_user: targetUser
+      ? {
+          _id: targetUser._id,
+          full_name: targetUser.full_name,
+          username: targetUser.username,
+          profile_picture: targetUser.profile_picture,
+          is_verified: targetUser.is_verified,
+        }
+      : { _id: String(targetUserId) },
+  };
 
   // Real-time emit to recipient and sender's other sessions
   await emitToUser(targetUserId, 'message:new', messageData, currentUserId);
   await emitToUser(currentUserId, 'message:new', messageData);
-  await publishToUser(targetUserId, 'message:new', messageData);
-  await publishToUser(currentUserId, 'message:new', messageData);
+  await publishToUser(String(targetUserId), 'message:new', messageData);
+  await publishToUser(String(currentUserId), 'message:new', messageData);
 
   // Send notification to recipient (respects setting & prevents duplicates)
   await createNotification({
@@ -341,18 +367,20 @@ export const deleteMessage = asyncHandler(async (req, res) => {
 
     const senderPayload = {
       messageId: message._id.toString(),
-      conversationWith: partnerId,
+      conversationWith: String(partnerId),
+      everyone: true,
       scope: 'everyone',
     };
     const recipientPayload = {
       messageId: message._id.toString(),
-      conversationWith: currentUserId,
+      conversationWith: String(currentUserId),
+      everyone: true,
       scope: 'everyone',
     };
 
     try {
-      await publishToUser(currentUserId, 'message:deleted', senderPayload);
-      await publishToUser(partnerId, 'message:deleted', recipientPayload);
+      await publishToUser(String(currentUserId), 'message:deleted', senderPayload);
+      await publishToUser(String(partnerId), 'message:deleted', recipientPayload);
     } catch (err) {
       console.error('[Message] Failed to publish message:deleted:', err.message);
     }
@@ -365,12 +393,13 @@ export const deleteMessage = asyncHandler(async (req, res) => {
 
     const payload = {
       messageId: message._id.toString(),
-      conversationWith: partnerId,
+      conversationWith: String(partnerId),
+      everyone: false,
       scope: 'me',
     };
 
     try {
-      await publishToUser(currentUserId, 'message:deleted', payload);
+      await publishToUser(String(currentUserId), 'message:deleted', payload);
     } catch (err) {
       console.error('[Message] Failed to publish message:deleted:', err.message);
     }

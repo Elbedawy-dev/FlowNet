@@ -10,6 +10,8 @@ import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
 import { useLanguage } from "../context/LanguageContext";
 
+const idOf = (x) => String(x?._id ?? x ?? "");
+
 const Chat = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -30,6 +32,16 @@ const Chat = () => {
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const openChatUserIdRef = useRef(userId);
+  const currentUserIdRef = useRef(currentUser?._id);
+
+  useEffect(() => {
+    openChatUserIdRef.current = userId;
+  }, [userId]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUser?._id;
+  }, [currentUser?._id]);
 
   const scrollToBottom = (behavior = "smooth") => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -62,82 +74,87 @@ const Chat = () => {
     fetchConversation();
   }, [fetchConversation]);
 
-  // Real-time Ably events
-  const handleNewMessage = useCallback(
-    (msg) => {
-      // Check if message belongs to this conversation
-      const isFromTarget = msg.from_user_id === userId && msg.to_user_id === currentUser?._id;
-      const isFromMe = msg.from_user_id === currentUser?._id && msg.to_user_id === userId;
+  // Real-time Ably events with refs to eliminate stale closures
+  const handleNewMessage = useCallback((msg) => {
+    if (!msg) return;
 
-      if (isFromTarget || isFromMe) {
-        setMessages((prev) => {
-          // Avoid duplicate messages
-          if (prev.some((m) => m._id === msg._id)) return prev;
+    const currentUserId = idOf(currentUserIdRef.current);
+    const openChatUserId = idOf(openChatUserIdRef.current);
 
-          // If this is my own message, replace matching optimistic temp message
-          if (isFromMe) {
-            const tempIdx = prev.findIndex(
-              (m) =>
-                String(m._id).startsWith("temp-") &&
-                m.from_user_id === currentUser?._id &&
-                m.to_user_id === userId &&
-                m.text === msg.text
-            );
-            if (tempIdx !== -1) {
-              const next = [...prev];
-              next[tempIdx] = msg;
-              return next;
-            }
+    const msgFrom = idOf(msg.from_user_id || msg.from_user || msg.sender);
+    const msgTo = idOf(msg.to_user_id || msg.to_user || msg.receiver);
+
+    const isFromTarget = msgFrom === openChatUserId && msgTo === currentUserId;
+    const isFromMe = msgFrom === currentUserId && msgTo === openChatUserId;
+
+    if (isFromTarget || isFromMe) {
+      setMessages((prev) => {
+        // Avoid duplicate messages
+        if (prev.some((m) => idOf(m._id) === idOf(msg._id))) return prev;
+
+        // If this is my own message, replace matching optimistic temp message
+        if (isFromMe) {
+          const tempIdx = prev.findIndex(
+            (m) =>
+              String(m._id).startsWith("temp-") &&
+              idOf(m.from_user_id) === currentUserId &&
+              idOf(m.to_user_id) === openChatUserId &&
+              m.text === msg.text
+          );
+          if (tempIdx !== -1) {
+            const next = [...prev];
+            next[tempIdx] = msg;
+            return next;
           }
-
-          return [...prev, msg];
-        });
-        setTimeout(() => scrollToBottom("smooth"), 100);
-
-        // Mark as seen immediately if incoming
-        if (isFromTarget) {
-          messagesApi.markSeen(userId).catch(() => {});
         }
-      }
-    },
-    [userId, currentUser?._id]
-  );
 
-  const handleMessageSeen = useCallback(
-    (data) => {
-      if (data.seen_by === userId) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.from_user_id === currentUser?._id ? { ...m, seen: true } : m
-          )
-        );
+        return [...prev, msg];
+      });
+
+      setTimeout(() => scrollToBottom("smooth"), 100);
+
+      // Mark as seen immediately if incoming
+      if (isFromTarget) {
+        messagesApi.markSeen(openChatUserId).catch(() => {});
       }
-    },
-    [userId, currentUser?._id]
-  );
+    }
+  }, []);
+
+  const handleMessageSeen = useCallback((data) => {
+    const currentUserId = idOf(currentUserIdRef.current);
+    const openChatUserId = idOf(openChatUserIdRef.current);
+    const seenBy = idOf(data?.seen_by);
+
+    if (seenBy === openChatUserId) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          idOf(m.from_user_id) === currentUserId ? { ...m, seen: true } : m
+        )
+      );
+    }
+  }, []);
 
   const handleMessageDeleted = useCallback((data) => {
     if (!data?.messageId) return;
+    const isEveryone = data.everyone || data.scope === "everyone";
     setMessages((prev) => {
-      if (data.scope === "everyone") {
+      if (isEveryone) {
         return prev.map((m) =>
-          m._id === data.messageId
+          idOf(m._id) === idOf(data.messageId)
             ? { ...m, is_unsent: true, text: "", media_url: "" }
             : m
         );
       }
-      return prev.filter((m) => m._id !== data.messageId);
+      return prev.filter((m) => idOf(m._id) !== idOf(data.messageId));
     });
   }, []);
 
-  const handleConversationDeleted = useCallback(
-    (data) => {
-      if (data?.with === userId) {
-        setMessages([]);
-      }
-    },
-    [userId]
-  );
+  const handleConversationDeleted = useCallback((data) => {
+    const openChatUserId = idOf(openChatUserIdRef.current);
+    if (idOf(data?.with) === openChatUserId) {
+      setMessages([]);
+    }
+  }, []);
 
   useSocketEvent("message:new", handleNewMessage);
   useSocketEvent("message:seen", handleMessageSeen);
@@ -208,8 +225,8 @@ const Chat = () => {
     // Optimistic message
     const optimisticMessage = {
       _id: tempId,
-      from_user_id: currentUser?._id,
-      to_user_id: userId,
+      from_user_id: idOf(currentUser?._id),
+      to_user_id: idOf(userId),
       text: textToSend,
       media_url: imagePreview,
       message_type: selectedImage ? "image" : "text",
@@ -236,10 +253,10 @@ const Chat = () => {
       }
 
       setMessages((prev) => {
-        if (prev.some((m) => m._id === res._id)) {
-          return prev.filter((m) => m._id !== tempId);
+        if (prev.some((m) => idOf(m._id) === idOf(res._id))) {
+          return prev.filter((m) => idOf(m._id) !== tempId);
         }
-        return prev.map((m) => (m._id === tempId ? res : m));
+        return prev.map((m) => (idOf(m._id) === tempId ? res : m));
       });
     } catch (err) {
       // Rollback optimistic message
@@ -377,7 +394,7 @@ const Chat = () => {
           </div>
         ) : (
           messages.map((msg, index) => {
-            const isMe = msg.from_user_id === currentUser?._id;
+            const isMe = idOf(msg.from_user_id) === idOf(currentUser?._id);
             const prevMsg = messages[index - 1];
             const isDifferentDay =
               !prevMsg ||

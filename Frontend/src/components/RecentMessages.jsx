@@ -9,6 +9,8 @@ import { useSocket, useSocketEvent } from "../context/SocketContext";
 import { useLanguage } from "../context/LanguageContext";
 import Avatar from "./Avatar";
 
+const idOf = (x) => String(x?._id ?? x ?? "");
+
 const RecentMessages = ({ mobile = false }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,18 +46,70 @@ const RecentMessages = ({ mobile = false }) => {
     return () => clearInterval(interval);
   }, [isConnected, currentUser?._id, fetchRecent]);
 
-  // Refresh recent list on new message received via Ably
-  const handleNewMessage = useCallback(() => {
+  // In-place hoist to top on message:new via Ably
+  const handleNewMessage = useCallback(
+    (msg) => {
+      if (!msg) {
+        fetchRecent(true);
+        return;
+      }
+      const myId = idOf(currentUser?._id);
+      const fromId = idOf(msg.from_user_id || msg.from_user || msg.sender);
+      const toId = idOf(msg.to_user_id || msg.to_user || msg.receiver);
+      const partnerId = fromId === myId ? toId : fromId;
+      if (!partnerId || partnerId === myId) return;
+
+      setMessages((prev) => {
+        const existingIdx = prev.findIndex((item) => {
+          const pId = idOf(
+            item.other_user?._id ||
+            (idOf(item.from_user_id) === myId ? item.to_user_id : item.from_user_id)
+          );
+          return pId === partnerId;
+        });
+
+        const partnerUser =
+          fromId === myId
+            ? msg.to_user || (existingIdx !== -1 ? prev[existingIdx].other_user : null)
+            : msg.from_user || (existingIdx !== -1 ? prev[existingIdx].other_user : null);
+
+        const newItem = {
+          _id: msg._id,
+          from_user_id: fromId,
+          to_user_id: toId,
+          other_user: partnerUser || (existingIdx !== -1 ? prev[existingIdx].other_user : { _id: partnerId }),
+          text: msg.is_unsent ? "" : msg.text,
+          media_url: msg.is_unsent ? "" : msg.media_url,
+          message_type: msg.message_type,
+          is_unsent: Boolean(msg.is_unsent),
+          seen: Boolean(msg.seen) || fromId === myId,
+          createdAt: msg.createdAt || new Date().toISOString(),
+        };
+
+        if (existingIdx !== -1) {
+          const next = [...prev];
+          next.splice(existingIdx, 1);
+          return [newItem, ...next];
+        }
+        return [newItem, ...prev];
+      });
+
+      fetchRecent(true);
+    },
+    [currentUser?._id, fetchRecent]
+  );
+
+  const handleUpdate = useCallback(() => {
     fetchRecent(true);
   }, [fetchRecent]);
 
   useSocketEvent("message:new", handleNewMessage);
-  useSocketEvent("message:seen", handleNewMessage);
-  useSocketEvent("message:deleted", handleNewMessage);
-  useSocketEvent("conversation:deleted", handleNewMessage);
+  useSocketEvent("message:seen", handleUpdate);
+  useSocketEvent("message:deleted", handleUpdate);
+  useSocketEvent("conversation:deleted", handleUpdate);
 
   const unreadCount = messages.filter(
-    (item) => !item.seen && item.to_user_id === currentUser?._id
+    (item) => !item.seen && idOf(item.to_user_id) === idOf(currentUser?._id)
   ).length;
 
   // Mobile rendering (collapsible card with horizontal avatar strip & expandable list)
@@ -110,12 +164,14 @@ const RecentMessages = ({ mobile = false }) => {
             </div>
           ) : (
             messages.map((item, index) => {
-              const partner = item.other_user || item.from_user_id || {};
-              const isUnread = !item.seen && item.to_user_id === currentUser?._id;
+              const myId = idOf(currentUser?._id);
+              const partner = item.other_user || (idOf(item.from_user_id) === myId ? item.to_user : item.from_user) || {};
+              const partnerId = idOf(partner._id || (idOf(item.from_user_id) === myId ? item.to_user_id : item.from_user_id));
+              const isUnread = !item.seen && idOf(item.to_user_id) === myId;
 
               return (
                 <Link
-                  to={`/messages/${partner._id}`}
+                  to={`/messages/${partnerId}`}
                   key={item._id || index}
                   className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none"
                   title={partner.full_name || partner.username || "User"}
@@ -147,16 +203,18 @@ const RecentMessages = ({ mobile = false }) => {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.25 }}
               className="border-t border-app divide-y divide-app overflow-hidden max-h-64 overflow-y-auto no-scrollbar"
             >
               {messages.map((item, index) => {
-                const partner = item.other_user || item.from_user_id || {};
-                const isUnread = !item.seen && item.to_user_id === currentUser?._id;
+                const myId = idOf(currentUser?._id);
+                const partner = item.other_user || (idOf(item.from_user_id) === myId ? item.to_user : item.from_user) || {};
+                const partnerId = idOf(partner._id || (idOf(item.from_user_id) === myId ? item.to_user_id : item.from_user_id));
+                const isUnread = !item.seen && idOf(item.to_user_id) === myId;
 
                 return (
                   <Link
-                    to={`/messages/${partner._id}`}
+                    to={`/messages/${partnerId}`}
                     key={item._id || index}
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-500/10 transition-colors"
                   >
@@ -238,12 +296,14 @@ const RecentMessages = ({ mobile = false }) => {
           </div>
         ) : (
           messages.map((item, index) => {
-            const partner = item.other_user || item.from_user_id || {};
-            const isUnread = !item.seen && item.to_user_id === currentUser?._id;
+            const myId = idOf(currentUser?._id);
+            const partner = item.other_user || (idOf(item.from_user_id) === myId ? item.to_user : item.from_user) || {};
+            const partnerId = idOf(partner._id || (idOf(item.from_user_id) === myId ? item.to_user_id : item.from_user_id));
+            const isUnread = !item.seen && idOf(item.to_user_id) === myId;
 
             return (
               <Link
-                to={`/messages/${partner._id}`}
+                to={`/messages/${partnerId}`}
                 key={item._id || index}
                 className="flex items-center gap-3 px-4 py-3.5 hover:bg-purple-500/10 transition-all duration-200"
               >

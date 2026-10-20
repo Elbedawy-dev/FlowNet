@@ -419,12 +419,16 @@ export const toggleLike = asyncHandler(async (req, res) => {
   // Realtime broadcast of updated post stats
   const commentsCount = await Comment.countDocuments({ post: post._id });
   const postStats = {
-    postId: post._id,
+    postId: post._id.toString(),
+    likes_count: updatedPost.likes_count,
+    comments_count: commentsCount,
+    shares_count: updatedPost.shares_count || 0,
     likesCount: updatedPost.likes_count.length,
     commentsCount,
+    sharesCount: updatedPost.shares_count || 0,
   };
   await publishToFeed('post:stats', postStats);
-  await publishToPost(post._id, 'post:stats', postStats);
+  await publishToPost(post._id.toString(), 'post:stats', postStats);
 
   res.status(200).json({
     success: true,
@@ -455,13 +459,22 @@ export const sharePost = asyncHandler(async (req, res) => {
     post._id,
     { $inc: { shares_count: 1 } },
     { new: true }
-  ).select('shares_count');
+  ).select('shares_count likes_count');
 
-  // Realtime emit
-  await publishToPost(post._id, 'post:stats', {
-    postId: post._id,
+  const commentsCount = await Comment.countDocuments({ post: post._id });
+  const postStats = {
+    postId: post._id.toString(),
+    likes_count: updatedPost.likes_count || post.likes_count || [],
+    comments_count: commentsCount,
+    shares_count: updatedPost.shares_count,
+    likesCount: (updatedPost.likes_count || post.likes_count || []).length,
+    commentsCount,
     sharesCount: updatedPost.shares_count,
-  });
+  };
+
+  // Realtime emit to both feed and post room
+  await publishToFeed('post:stats', postStats);
+  await publishToPost(post._id.toString(), 'post:stats', postStats);
 
   res.status(200).json({
     success: true,
@@ -555,15 +568,18 @@ export const addComment = asyncHandler(async (req, res) => {
 
   // Realtime emit
   const commentsCount = await Comment.countDocuments({ post: post._id });
-  const likesCount = Array.isArray(post.likes_count) ? post.likes_count.length : 0;
-  await publishToPost(post._id, 'post:comment_added', populatedComment);
+  await publishToPost(post._id.toString(), 'post:comment_added', populatedComment);
   const postStats = {
-    postId: post._id,
+    postId: post._id.toString(),
+    likes_count: post.likes_count || [],
+    comments_count: commentsCount,
+    shares_count: post.shares_count || 0,
+    likesCount: (post.likes_count || []).length,
     commentsCount,
-    likesCount,
+    sharesCount: post.shares_count || 0,
   };
   await publishToFeed('post:stats', postStats);
-  await publishToPost(post._id, 'post:stats', postStats);
+  await publishToPost(post._id.toString(), 'post:stats', postStats);
 
   res.status(201).json({
     success: true,
@@ -580,7 +596,7 @@ export const deleteComment = asyncHandler(async (req, res) => {
   const { id: postId, commentId } = req.params;
 
   const [post, comment] = await Promise.all([
-    Post.findById(postId).select('user'),
+    Post.findById(postId).select('user likes_count shares_count'),
     Comment.findById(commentId),
   ]);
 
@@ -600,13 +616,18 @@ export const deleteComment = asyncHandler(async (req, res) => {
 
   // Realtime emit
   const commentsCount = await Comment.countDocuments({ post: postId });
-  await publishToPost(postId, 'post:comment_deleted', { commentId });
+  await publishToPost(postId.toString(), 'post:comment_deleted', { commentId });
   const postStats = {
-    postId,
+    postId: postId.toString(),
+    likes_count: post?.likes_count || [],
+    comments_count: commentsCount,
+    shares_count: post?.shares_count || 0,
+    likesCount: (post?.likes_count || []).length,
     commentsCount,
+    sharesCount: post?.shares_count || 0,
   };
   await publishToFeed('post:stats', postStats);
-  await publishToPost(postId, 'post:stats', postStats);
+  await publishToPost(postId.toString(), 'post:stats', postStats);
 
   res.status(200).json({
     success: true,

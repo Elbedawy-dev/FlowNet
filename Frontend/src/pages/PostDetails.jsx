@@ -83,10 +83,17 @@ const PostDetails = () => {
     setPost((p) => {
       if (!p) return p;
       const updated = { ...p };
-      if (data.commentsCount !== undefined) {
+      if (Array.isArray(data.likes_count)) {
+        updated.likes_count = data.likes_count;
+      }
+      if (data.comments_count !== undefined) {
+        updated.comments_count = data.comments_count;
+      } else if (data.commentsCount !== undefined) {
         updated.comments_count = data.commentsCount;
       }
-      if (data.sharesCount !== undefined) {
+      if (data.shares_count !== undefined) {
+        updated.shares_count = data.shares_count;
+      } else if (data.sharesCount !== undefined) {
         updated.shares_count = data.sharesCount;
       }
       return updated;

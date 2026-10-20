@@ -20,6 +20,7 @@ import toast from "react-hot-toast";
 import { usersApi, connectionsApi } from "../api/axios";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useSocketEvent } from "../context/SocketContext";
 import PostCard from "../components/PostCard";
 import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
@@ -101,6 +102,43 @@ const Profile = () => {
       prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
     );
   };
+
+  useSocketEvent(
+    "post:deleted",
+    useCallback((data) => {
+      const id = data?.postId || data?.id || data;
+      if (id) {
+        setPosts((prev) => prev.filter((p) => p._id !== id));
+      }
+    }, [])
+  );
+
+  useSocketEvent(
+    "post:stats",
+    useCallback((data) => {
+      if (!data?.postId) return;
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p._id !== data.postId) return p;
+          const updated = { ...p };
+          if (Array.isArray(data.likes_count)) {
+            updated.likes_count = data.likes_count;
+          }
+          if (data.comments_count !== undefined) {
+            updated.comments_count = data.comments_count;
+          } else if (data.commentsCount !== undefined) {
+            updated.comments_count = data.commentsCount;
+          }
+          if (data.shares_count !== undefined) {
+            updated.shares_count = data.shares_count;
+          } else if (data.sharesCount !== undefined) {
+            updated.shares_count = data.sharesCount;
+          }
+          return updated;
+        })
+      );
+    }, [])
+  );
 
   useEffect(() => {
     fetchProfile();

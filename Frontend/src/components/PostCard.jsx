@@ -19,6 +19,8 @@ import Avatar from "./Avatar";
 import ConfirmModal from "./ConfirmModal";
 import toast from "react-hot-toast";
 
+const idOf = (x) => String(x?._id ?? x ?? "");
+
 const PostCard = ({ post, onDeleted, onUpdated, className = "" }) => {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
@@ -49,14 +51,16 @@ const PostCard = ({ post, onDeleted, onUpdated, className = "" }) => {
 
   const menuRef = useRef(null);
 
-  // Sync when post prop updates
+  // Sync when post prop updates (preserve optimistic toggle while request in-flight)
   useEffect(() => {
     setCurrentPost(post);
-    setLikes(Array.isArray(post.likes_count) ? post.likes_count : []);
+    if (!isLiking) {
+      setLikes(Array.isArray(post.likes_count) ? post.likes_count : []);
+    }
     setShares(post.shares_count || 0);
     setEditContent(post.content || "");
     setExistingImages(Array.isArray(post.image_urls) ? post.image_urls : []);
-  }, [post]);
+  }, [post, isLiking]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -72,27 +76,29 @@ const PostCard = ({ post, onDeleted, onUpdated, className = "" }) => {
   }, [menuOpen]);
 
   const postUserId = currentPost.user?._id || currentPost.user;
-  const isOwner = currentUser?._id && String(postUserId) === String(currentUser._id);
-  const isLikedByMe = currentUser?._id && likes.includes(currentUser._id);
+  const myId = idOf(currentUser?._id);
+  const isOwner = myId && idOf(postUserId) === myId;
+  const isLikedByMe = myId && likes.some((id) => idOf(id) === myId);
 
   const handleLike = async (e) => {
     e.stopPropagation();
-    if (!currentUser?._id || isLiking) return;
+    if (!myId || isLiking) return;
 
     setIsLiking(true);
+    const prevLikes = [...likes];
     const newLikes = isLikedByMe
-      ? likes.filter((id) => id !== currentUser._id)
-      : [...likes, currentUser._id];
+      ? likes.filter((id) => idOf(id) !== myId)
+      : [...likes, myId];
 
     setLikes(newLikes);
 
     try {
       const res = await postsApi.like(currentPost._id);
-      if (res?.likes_count) {
+      if (Array.isArray(res?.likes_count)) {
         setLikes(res.likes_count);
       }
     } catch (err) {
-      setLikes(likes);
+      setLikes(prevLikes);
       toast.error(err.message || t("posts.likeFailed") || "Failed to update like");
     } finally {
       setIsLiking(false);

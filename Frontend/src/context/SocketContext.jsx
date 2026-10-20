@@ -30,6 +30,11 @@ const FEED_EVENTS = new Set([
   'story:deleted',
 ]);
 
+export const shouldDebug = () => {
+  if (typeof window !== 'undefined' && window.__flownetDebug) return true;
+  return Boolean(import.meta.env.DEV);
+};
+
 export const SocketProvider = ({ children }) => {
   const { isSignedIn, getToken } = useAuth();
   const { user } = useUser();
@@ -39,6 +44,7 @@ export const SocketProvider = ({ children }) => {
   const ablyRef = useRef(null);
   const activeSubscriptionsRef = useRef(new Map());
 
+  // Strictly prioritize loaded currentUser._id, falling back to Clerk user.id
   const currentUserId = currentUser?._id || user?.id || null;
   const currentUserIdRef = useRef(currentUserId);
   useEffect(() => {
@@ -55,8 +61,8 @@ export const SocketProvider = ({ children }) => {
 
     if (!isSignedIn && !isMock) {
       if (ablyRef.current) {
-        if (import.meta.env.DEV) {
-          console.log('[Ably Dev] Closing connection on sign-out');
+        if (shouldDebug()) {
+          console.log('[Ably] Closing connection on sign-out');
         }
         ablyRef.current.close();
         ablyRef.current = null;
@@ -86,7 +92,7 @@ export const SocketProvider = ({ children }) => {
             }
             return tokenRequest;
           } catch (err) {
-            console.warn('[Ably] Token request failed:', err.message);
+            console.error('[Ably] Token request failed:', err.message);
             if (typeof callback === 'function') {
               callback(err, null);
             }
@@ -96,12 +102,15 @@ export const SocketProvider = ({ children }) => {
         autoConnect: true,
       });
 
-      // Temporary dev-only console log for connection state changes
+      // Console log for connection state changes (DEV or window.__flownetDebug)
       client.connection.on((stateChange) => {
-        if (import.meta.env.DEV) {
+        if (shouldDebug()) {
           console.log(
-            `[Ably Dev] Connection state changed: ${stateChange.previous} -> ${stateChange.current}`
+            `[Ably] Connection state changed: ${stateChange.previous} -> ${stateChange.current}`
           );
+        }
+        if (stateChange.reason) {
+          console.error('[Ably] Connection state change reason/error:', stateChange.reason);
         }
         if (isMounted) {
           setConnected(stateChange.current === 'connected');
@@ -113,7 +122,7 @@ export const SocketProvider = ({ children }) => {
         setAbly(client);
       }
     } catch (err) {
-      console.warn('[Ably] Setup error:', err);
+      console.error('[Ably] Setup error:', err);
     }
 
     return () => {
@@ -243,9 +252,26 @@ export const useSocketEvent = (event, handler) => {
     }
 
     const channel = ably.channels.get(channelName);
+
+    const onAttached = () => {
+      if (shouldDebug()) {
+        console.log(`[Ably] Channel "${channelName}" attached successfully`);
+      }
+    };
+
+    const onFailed = (stateChange) => {
+      console.error(
+        `[Ably] Channel "${channelName}" attach failed:`,
+        stateChange?.reason || stateChange
+      );
+    };
+
+    channel.on('attached', onAttached);
+    channel.on('failed', onFailed);
+
     const listener = (msg) => {
-      if (import.meta.env.DEV) {
-        console.log(`[Ably Dev] Channel "${channelName}" Event "${event}":`, msg.data);
+      if (shouldDebug()) {
+        console.log(`[Ably] Channel "${channelName}" Event "${event}":`, msg.data);
       }
       if (handlerRef.current) {
         handlerRef.current(msg.data !== undefined ? msg.data : msg);
@@ -255,6 +281,8 @@ export const useSocketEvent = (event, handler) => {
     channel.subscribe(event, listener);
 
     return () => {
+      channel.off('attached', onAttached);
+      channel.off('failed', onFailed);
       channel.unsubscribe(event, listener);
     };
   }, [ably, connected, event, userId]);
@@ -280,15 +308,31 @@ export const useRoom = (type, id, handlers = {}) => {
     if (!ably || !channelName || !connected) return;
 
     const channel = ably.channels.get(channelName);
-    const listeners = [];
 
+    const onAttached = () => {
+      if (shouldDebug()) {
+        console.log(`[Ably] Room Channel "${channelName}" attached successfully`);
+      }
+    };
+
+    const onFailed = (stateChange) => {
+      console.error(
+        `[Ably] Room Channel "${channelName}" attach failed:`,
+        stateChange?.reason || stateChange
+      );
+    };
+
+    channel.on('attached', onAttached);
+    channel.on('failed', onFailed);
+
+    const listeners = [];
     const currentHandlers = handlersRef.current || {};
     for (const [event, fn] of Object.entries(currentHandlers)) {
       if (typeof fn !== 'function') continue;
 
       const listener = (msg) => {
-        if (import.meta.env.DEV) {
-          console.log(`[Ably Dev] Room "${channelName}" Event "${event}":`, msg.data);
+        if (shouldDebug()) {
+          console.log(`[Ably] Room "${channelName}" Event "${event}":`, msg.data);
         }
         fn(msg.data !== undefined ? msg.data : msg);
       };
@@ -298,6 +342,8 @@ export const useRoom = (type, id, handlers = {}) => {
     }
 
     return () => {
+      channel.off('attached', onAttached);
+      channel.off('failed', onFailed);
       for (const { event, listener } of listeners) {
         channel.unsubscribe(event, listener);
       }
@@ -310,8 +356,8 @@ export const useRoom = (type, id, handlers = {}) => {
 
       const channel = ably.channels.get(channelName);
       const listener = (msg) => {
-        if (import.meta.env.DEV) {
-          console.log(`[Ably Dev] Room "${channelName}" Event "${event}":`, msg.data);
+        if (shouldDebug()) {
+          console.log(`[Ably] Room "${channelName}" Event "${event}":`, msg.data);
         }
         fn(msg.data !== undefined ? msg.data : msg);
       };

@@ -10,6 +10,8 @@ import Avatar from "../components/Avatar";
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 
+const idOf = (x) => String(x?._id ?? x ?? "");
+
 const Messages = () => {
   const [recentMessages, setRecentMessages] = useState([]);
   const [connections, setConnections] = useState([]);
@@ -61,12 +63,64 @@ const Messages = () => {
     }
   }, [currentUser?._id, fetchAllData]);
 
-  // Real-time updates via Ably
+  // Real-time updates via Ably: move thread to top in place immediately
+  const handleNewMessage = useCallback(
+    (msg) => {
+      if (!msg) {
+        fetchAllData(true);
+        return;
+      }
+      const myId = idOf(currentUser?._id);
+      const fromId = idOf(msg.from_user_id || msg.from_user || msg.sender);
+      const toId = idOf(msg.to_user_id || msg.to_user || msg.receiver);
+      const partnerId = fromId === myId ? toId : fromId;
+      if (!partnerId || partnerId === myId) return;
+
+      setRecentMessages((prev) => {
+        const existingIdx = prev.findIndex((item) => {
+          const pId = idOf(
+            item.other_user?._id ||
+            (idOf(item.from_user_id) === myId ? item.to_user_id : item.from_user_id)
+          );
+          return pId === partnerId;
+        });
+
+        const partnerUser =
+          fromId === myId
+            ? msg.to_user || (existingIdx !== -1 ? prev[existingIdx].other_user : null)
+            : msg.from_user || (existingIdx !== -1 ? prev[existingIdx].other_user : null);
+
+        const newItem = {
+          _id: msg._id,
+          from_user_id: fromId,
+          to_user_id: toId,
+          other_user: partnerUser || (existingIdx !== -1 ? prev[existingIdx].other_user : { _id: partnerId }),
+          text: msg.is_unsent ? "" : msg.text,
+          media_url: msg.is_unsent ? "" : msg.media_url,
+          message_type: msg.message_type,
+          is_unsent: Boolean(msg.is_unsent),
+          seen: Boolean(msg.seen) || fromId === myId,
+          createdAt: msg.createdAt || new Date().toISOString(),
+        };
+
+        if (existingIdx !== -1) {
+          const next = [...prev];
+          next.splice(existingIdx, 1);
+          return [newItem, ...next];
+        }
+        return [newItem, ...prev];
+      });
+
+      fetchAllData(true);
+    },
+    [currentUser?._id, fetchAllData]
+  );
+
   const handleMessageUpdate = useCallback(() => {
     fetchAllData(true);
   }, [fetchAllData]);
 
-  useSocketEvent("message:new", handleMessageUpdate);
+  useSocketEvent("message:new", handleNewMessage);
   useSocketEvent("message:seen", handleMessageUpdate);
   useSocketEvent("message:deleted", handleMessageUpdate);
   useSocketEvent("conversation:deleted", handleMessageUpdate);
@@ -74,16 +128,19 @@ const Messages = () => {
   // Merge (a) recent conversations with (b) connections without message history
   const mergedConversations = useMemo(() => {
     const map = new Map();
+    const myId = idOf(currentUser?._id);
 
     // 1. Process recent conversations
     for (const item of recentMessages) {
-      const partner = item.other_user || item.from_user_id || {};
-      const partnerId = partner._id;
+      const partner = item.other_user || (idOf(item.from_user_id) === myId ? item.to_user : item.from_user) || {};
+      const partnerId = idOf(
+        partner._id || (idOf(item.from_user_id) === myId ? item.to_user_id : item.from_user_id)
+      );
 
       if (!partnerId || blockedUserIds.has(partnerId)) continue;
-      if (partnerId === currentUser?._id) continue;
+      if (partnerId === myId) continue;
 
-      const isUnread = !item.seen && item.to_user_id === currentUser?._id;
+      const isUnread = !item.seen && idOf(item.to_user_id) === myId;
       const isMedia = Boolean(item.media_url || item.message_type === "image");
       const previewText = item.is_unsent
         ? (t("messages.unsentPlaceholder") || "This message was unsent")
@@ -94,7 +151,7 @@ const Messages = () => {
         : "";
 
       map.set(partnerId, {
-        user: partner,
+        user: partner._id ? partner : { _id: partnerId, ...partner },
         lastMessage: previewText,
         lastTime: item.createdAt ? new Date(item.createdAt) : null,
         isUnread,
