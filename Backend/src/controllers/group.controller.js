@@ -9,6 +9,7 @@ import { uploadFromBuffer } from '../config/cloudinary.js';
 import { parseCursorPagination, buildCursorResult } from '../utils/pagination.js';
 import { emitToGroup, emitToUser } from '../sockets/index.js';
 import { createNotification } from './notification.controller.js';
+import { publishToGroup, publishToUser } from '../realtime/index.js';
 
 export const createGroupSchema = z.object({
   name: z
@@ -268,13 +269,17 @@ export const updateGroup = asyncHandler(async (req, res) => {
 
   await group.save();
 
-  // Broadcast group update
-  emitToGroup(groupId, 'group:updated', {
+  const updatedPayload = {
+    _id: group._id,
     groupId: group._id,
     name: group.name,
     icon: group.icon,
     description: group.description,
-  });
+  };
+
+  // Broadcast group update
+  emitToGroup(groupId, 'group:updated', updatedPayload);
+  await publishToGroup(groupId, 'group:updated', updatedPayload);
 
   res.status(200).json({
     success: true,
@@ -315,6 +320,7 @@ export const deleteGroup = asyncHandler(async (req, res) => {
 
   // 4. Real-time emit to group room
   emitToGroup(groupId, 'group:deleted', { groupId });
+  await publishToGroup(groupId, 'group:deleted', { groupId });
 
   res.status(200).json({
     success: true,
@@ -358,11 +364,13 @@ export const requestToJoinGroup = asyncHandler(async (req, res) => {
       group: group._id,
     });
 
-    await emitToUser(recipientId, 'group:request', {
+    const reqPayload = {
       groupId: group._id,
       groupName: group.name,
       userId: currentUserId,
-    });
+    };
+    await emitToUser(recipientId, 'group:request', reqPayload);
+    await publishToUser(recipientId, 'group:request', reqPayload);
   }
 
   res.status(200).json({
@@ -455,17 +463,21 @@ export const acceptJoinRequest = asyncHandler(async (req, res) => {
     group: group._id,
   });
 
-  await emitToUser(targetUserId, 'group:request_accepted', {
+  const acceptPayload = {
     groupId: group._id,
     groupName: group.name,
-  });
+  };
+  await emitToUser(targetUserId, 'group:request_accepted', acceptPayload);
+  await publishToUser(targetUserId, 'group:request_accepted', acceptPayload);
 
   // Notify group chat room of new member
-  emitToGroup(groupId, 'group:member_joined', {
+  const memberJoinedPayload = {
     groupId: group._id,
     userId: targetUserId,
     membersCount: group.members.length,
-  });
+  };
+  emitToGroup(groupId, 'group:member_joined', memberJoinedPayload);
+  await publishToGroup(groupId, 'group:member_joined', memberJoinedPayload);
 
   res.status(200).json({
     success: true,
@@ -525,11 +537,13 @@ export const leaveGroup = asyncHandler(async (req, res) => {
   group.admins = group.admins.filter((id) => id !== currentUserId);
   await group.save();
 
-  emitToGroup(groupId, 'group:member_left', {
+  const memberLeftPayload = {
     groupId: group._id,
     userId: currentUserId,
     membersCount: group.members.length,
-  });
+  };
+  emitToGroup(groupId, 'group:member_left', memberLeftPayload);
+  await publishToGroup(groupId, 'group:member_left', memberLeftPayload);
 
   res.status(200).json({
     success: true,
@@ -559,11 +573,13 @@ export const removeMember = asyncHandler(async (req, res) => {
     group.admins = group.admins.filter((id) => id !== currentUserId);
     await group.save();
 
-    emitToGroup(groupId, 'group:member_left', {
+    const selfLeftPayload = {
       groupId: group._id,
       userId: currentUserId,
       membersCount: group.members.length,
-    });
+    };
+    emitToGroup(groupId, 'group:member_left', selfLeftPayload);
+    await publishToGroup(groupId, 'group:member_left', selfLeftPayload);
 
     return res.status(200).json({
       success: true,
@@ -592,10 +608,16 @@ export const removeMember = asyncHandler(async (req, res) => {
   group.admins = group.admins.filter((id) => id !== targetUserId);
   await group.save();
 
-  emitToGroup(groupId, 'group:member_removed', {
+  const memberRemovedPayload = {
     groupId: group._id,
     userId: targetUserId,
     membersCount: group.members.length,
+  };
+  emitToGroup(groupId, 'group:member_removed', memberRemovedPayload);
+  await publishToGroup(groupId, 'group:member_removed', memberRemovedPayload);
+  await publishToUser(targetUserId, 'group:member_left', {
+    groupId: group._id,
+    userId: targetUserId,
   });
 
   res.status(200).json({
@@ -692,6 +714,7 @@ export const sendGroupMessage = asyncHandler(async (req, res) => {
 
   // Broadcast to all members in the group room
   emitToGroup(groupId, 'group:message', populatedMessage);
+  await publishToGroup(groupId, 'group:message', populatedMessage);
 
   res.status(201).json({
     success: true,

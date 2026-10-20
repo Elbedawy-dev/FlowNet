@@ -16,4 +16,5 @@ export const env = {
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
   SEED_OWNER_ID: process.env.SEED_OWNER_ID || '',
+  ABLY_API_KEY: process.env.ABLY_API_KEY || '',
 };

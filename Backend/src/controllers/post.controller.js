@@ -10,6 +10,7 @@ import { sanitizeText } from '../utils/sanitize.js';
 import { uploadFromBuffer, deleteResource, extractPublicId } from '../config/cloudinary.js';
 import { parseCursorPagination, buildCursorResult } from '../utils/pagination.js';
 import { createNotification } from './notification.controller.js';
+import { publishToFeed, publishToPost } from '../realtime/index.js';
 
 export const createPostSchema = z.object({
   content: z.string().max(2000).optional(),
@@ -361,6 +362,9 @@ export const deletePost = asyncHandler(async (req, res) => {
   // 4. Delete the post document
   await Post.findByIdAndDelete(post._id);
 
+  // Realtime emit
+  await publishToFeed('post:deleted', { postId: post._id });
+
   res.status(200).json({
     success: true,
     message: 'Post deleted successfully',
@@ -412,6 +416,16 @@ export const toggleLike = asyncHandler(async (req, res) => {
     }
   }
 
+  // Realtime broadcast of updated post stats
+  const commentsCount = await Comment.countDocuments({ post: post._id });
+  const postStats = {
+    postId: post._id,
+    likesCount: updatedPost.likes_count.length,
+    commentsCount,
+  };
+  await publishToFeed('post:stats', postStats);
+  await publishToPost(post._id, 'post:stats', postStats);
+
   res.status(200).json({
     success: true,
     data: {
@@ -442,6 +456,12 @@ export const sharePost = asyncHandler(async (req, res) => {
     { $inc: { shares_count: 1 } },
     { new: true }
   ).select('shares_count');
+
+  // Realtime emit
+  await publishToPost(post._id, 'post:stats', {
+    postId: post._id,
+    sharesCount: updatedPost.shares_count,
+  });
 
   res.status(200).json({
     success: true,
@@ -533,6 +553,19 @@ export const addComment = asyncHandler(async (req, res) => {
     });
   }
 
+  // Realtime emit
+  const commentsCount = await Comment.countDocuments({ post: post._id });
+  const likesCount = Array.isArray(post.likes_count) ? post.likes_count.length : 0;
+  await publishToPost(post._id, 'post:comment_added', populatedComment);
+  await publishToPost(post._id, 'comment:new', populatedComment);
+  const postStats = {
+    postId: post._id,
+    commentsCount,
+    likesCount,
+  };
+  await publishToFeed('post:stats', postStats);
+  await publishToPost(post._id, 'post:stats', postStats);
+
   res.status(201).json({
     success: true,
     data: populatedComment,
@@ -565,6 +598,17 @@ export const deleteComment = asyncHandler(async (req, res) => {
   }
 
   await Comment.findByIdAndDelete(commentId);
+
+  // Realtime emit
+  const commentsCount = await Comment.countDocuments({ post: postId });
+  await publishToPost(postId, 'post:comment_deleted', { commentId });
+  await publishToPost(postId, 'comment:deleted', { commentId });
+  const postStats = {
+    postId,
+    commentsCount,
+  };
+  await publishToFeed('post:stats', postStats);
+  await publishToPost(postId, 'post:stats', postStats);
 
   res.status(200).json({
     success: true,

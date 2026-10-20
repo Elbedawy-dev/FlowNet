@@ -6,6 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { getBlockedUserIds, isBlockedEitherWay } from '../utils/blockUtils.js';
 import { parseCursorPagination, buildCursorResult } from '../utils/pagination.js';
 import { emitToUser } from '../sockets/index.js';
+import { publishToUser } from '../realtime/index.js';
 
 /**
  * Reusable helper to create a notification, check recipient settings, and emit in real-time
@@ -83,8 +84,11 @@ export const createNotification = async ({
       .populate('post', '_id content image_urls')
       .lean();
 
-    // Emit in real time via Socket.io
+    // Emit in real time via Socket.io and Ably
     await emitToUser(user, 'notification:new', populated, actor);
+    await publishToUser(user, 'notification:new', populated);
+    const unreadCount = await Notification.countDocuments({ user, read: false });
+    await publishToUser(user, 'notification:count', { count: unreadCount });
 
     return populated;
   } catch (err) {
@@ -165,6 +169,7 @@ export const getUnreadCount = asyncHandler(async (req, res) => {
  */
 export const markAllAsRead = asyncHandler(async (req, res) => {
   await Notification.updateMany({ user: req.userId, read: false }, { $set: { read: true } });
+  await publishToUser(req.userId, 'notification:count', { count: 0 });
 
   res.status(200).json({
     success: true,
@@ -186,6 +191,9 @@ export const markAsRead = asyncHandler(async (req, res) => {
   if (!notification) {
     throw ApiError.notFound('Notification not found');
   }
+
+  const unreadCount = await Notification.countDocuments({ user: req.userId, read: false });
+  await publishToUser(req.userId, 'notification:count', { count: unreadCount });
 
   res.status(200).json({
     success: true,

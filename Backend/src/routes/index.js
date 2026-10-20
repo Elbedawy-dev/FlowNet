@@ -7,6 +7,7 @@ import messageRoutes from './message.routes.js';
 import notificationRoutes from './notification.routes.js';
 import groupRoutes from './group.routes.js';
 import webhookRoutes from './webhook.routes.js';
+import realtimeRoutes from './realtime.routes.js';
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use('/stories', storyRoutes);
 router.use('/messages', messageRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/groups', groupRoutes);
+router.use('/realtime', realtimeRoutes);
 
 export default router;

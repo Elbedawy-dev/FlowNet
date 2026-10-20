@@ -7,6 +7,7 @@ import { uploadFromBuffer } from '../config/cloudinary.js';
 import { parseCursorPagination, buildCursorResult } from '../utils/pagination.js';
 import { emitToUser } from '../sockets/index.js';
 import { createNotification } from './notification.controller.js';
+import { publishToUser } from '../realtime/index.js';
 
 /**
  * GET /api/messages/recent
@@ -105,13 +106,15 @@ export const getConversation = asyncHandler(async (req, res) => {
   );
 
   if (unreadUpdate.modifiedCount > 0) {
+    const seenPayload = { seen_by: currentUserId, conversationWith: targetUserId };
     // Notify sender in real time that their messages have been seen
     await emitToUser(
       targetUserId,
       'message:seen',
-      { seen_by: currentUserId, conversationWith: targetUserId },
+      seenPayload,
       currentUserId
     );
+    await publishToUser(targetUserId, 'message:seen', seenPayload);
   }
 
   const query = {
@@ -216,6 +219,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
   // Real-time emit to recipient and sender's other sessions
   await emitToUser(targetUserId, 'message:new', messageData, currentUserId);
   await emitToUser(currentUserId, 'message:new', messageData);
+  await publishToUser(targetUserId, 'message:new', messageData);
+  await publishToUser(currentUserId, 'message:new', messageData);
 
   // Send notification to recipient (respects setting & prevents duplicates)
   await createNotification({
@@ -243,12 +248,15 @@ export const markMessagesSeen = asyncHandler(async (req, res) => {
     { $set: { seen: true } }
   );
 
+  const seenPayload = { seen_by: currentUserId, conversationWith: targetUserId };
   await emitToUser(
     targetUserId,
     'message:seen',
-    { seen_by: currentUserId, conversationWith: targetUserId },
+    seenPayload,
     currentUserId
   );
+  await publishToUser(targetUserId, 'message:seen', seenPayload);
+  await publishToUser(currentUserId, 'message:seen', seenPayload);
 
   res.status(200).json({
     success: true,
