@@ -1,9 +1,10 @@
 import { Message } from '../models/Message.js';
+import { ConversationClear } from '../models/ConversationClear.js';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getBlockedUserIds, getBlockStatus } from '../utils/blockUtils.js';
-import { uploadFromBuffer } from '../config/cloudinary.js';
+import { uploadFromBuffer, deleteResource, extractPublicId } from '../config/cloudinary.js';
 import { parseCursorPagination, buildCursorResult } from '../utils/pagination.js';
 import { emitToUser } from '../sockets/index.js';
 import { createNotification } from './notification.controller.js';
@@ -17,12 +18,17 @@ export const getRecentMessages = asyncHandler(async (req, res) => {
   const currentUserId = req.userId;
   const blockedUserIds = await getBlockedUserIds(currentUserId);
 
-  // Find all messages involving current user, excluding blocked users
+  // Load conversation clear records for current user
+  const clearRecords = await ConversationClear.find({ user: currentUserId }).lean();
+  const clearedAtMap = new Map(clearRecords.map((c) => [c.with, new Date(c.cleared_at)]));
+
+  // Find all messages involving current user, excluding blocked users and deleted_for
   const messages = await Message.find({
     $or: [
       { from_user_id: currentUserId, to_user_id: { $nin: blockedUserIds } },
       { to_user_id: currentUserId, from_user_id: { $nin: blockedUserIds } },
     ],
+    deleted_for: { $ne: currentUserId },
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -31,6 +37,10 @@ export const getRecentMessages = asyncHandler(async (req, res) => {
   const conversationMap = new Map();
   for (const msg of messages) {
     const partnerId = msg.from_user_id === currentUserId ? msg.to_user_id : msg.from_user_id;
+    const clearedAt = clearedAtMap.get(partnerId);
+    if (clearedAt && new Date(msg.createdAt) <= clearedAt) {
+      continue;
+    }
     if (!conversationMap.has(partnerId)) {
       conversationMap.set(partnerId, msg);
     }
@@ -62,9 +72,10 @@ export const getRecentMessages = asyncHandler(async (req, res) => {
       from_user_id: partnerProfile, // Formatted as other user for frontend compatibility
       other_user: partnerProfile,
       to_user_id: msg.to_user_id,
-      text: msg.text,
+      text: msg.is_unsent ? '' : msg.text,
       message_type: msg.message_type,
-      media_url: msg.media_url,
+      media_url: msg.is_unsent ? '' : msg.media_url,
+      is_unsent: Boolean(msg.is_unsent),
       seen: msg.seen,
       createdAt: msg.createdAt,
     });
@@ -117,15 +128,25 @@ export const getConversation = asyncHandler(async (req, res) => {
     await publishToUser(targetUserId, 'message:seen', seenPayload);
   }
 
+  const clearRecord = await ConversationClear.findOne({
+    user: currentUserId,
+    with: targetUserId,
+  }).lean();
+
   const query = {
     $or: [
       { from_user_id: currentUserId, to_user_id: targetUserId },
       { from_user_id: targetUserId, to_user_id: currentUserId },
     ],
+    deleted_for: { $ne: currentUserId },
   };
 
+  if (clearRecord?.cleared_at) {
+    query.createdAt = { $gt: clearRecord.cleared_at };
+  }
+
   if (cursor) {
-    query.createdAt = { $lt: new Date(cursor) };
+    query.createdAt = { ...(query.createdAt || {}), $lt: new Date(cursor) };
   }
 
   const messages = await Message.find(query)
@@ -135,8 +156,18 @@ export const getConversation = asyncHandler(async (req, res) => {
 
   const result = buildCursorResult(messages, limit);
 
-  // Return chronologically ordered messages in the final items array
-  const chronologicalMessages = [...result.items].reverse();
+  // Return chronologically ordered messages in the final items array, sanitizing unsent messages
+  const chronologicalMessages = [...result.items].reverse().map((msg) => {
+    if (msg.is_unsent) {
+      return {
+        ...msg,
+        text: '',
+        media_url: '',
+        is_unsent: true,
+      };
+    }
+    return msg;
+  });
 
   res.status(200).json({
     success: true,
@@ -261,5 +292,118 @@ export const markMessagesSeen = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Messages marked as seen',
+  });
+});
+
+/**
+ * DELETE /api/messages/:messageId?scope=me|everyone
+ * Delete message:
+ * - scope=me: hide only for current user via deleted_for
+ * - scope=everyone: unsend for everyone (sender only)
+ */
+export const deleteMessage = asyncHandler(async (req, res) => {
+  const currentUserId = req.userId;
+  const { messageId } = req.params;
+  const scope = req.query.scope || req.body.scope || 'me';
+
+  const message = await Message.findById(messageId);
+  if (!message) {
+    throw ApiError.notFound('Message not found');
+  }
+
+  const isSender = message.from_user_id === currentUserId;
+  const isRecipient = message.to_user_id === currentUserId;
+  if (!isSender && !isRecipient) {
+    throw ApiError.forbidden('You are not a participant in this conversation');
+  }
+
+  const partnerId = isSender ? message.to_user_id : message.from_user_id;
+
+  if (scope === 'everyone') {
+    if (!isSender) {
+      throw ApiError.forbidden('Only the sender can unsend a message for everyone');
+    }
+
+    message.is_unsent = true;
+    if (message.media_url) {
+      const publicId = extractPublicId(message.media_url);
+      if (publicId) {
+        try {
+          await deleteResource(publicId, 'image');
+        } catch (e) {
+          console.warn('[Message] Failed to delete Cloudinary media asset:', e.message);
+        }
+      }
+    }
+    message.text = '';
+    message.media_url = '';
+    await message.save();
+
+    const senderPayload = {
+      messageId: message._id.toString(),
+      conversationWith: partnerId,
+      scope: 'everyone',
+    };
+    const recipientPayload = {
+      messageId: message._id.toString(),
+      conversationWith: currentUserId,
+      scope: 'everyone',
+    };
+
+    try {
+      await publishToUser(currentUserId, 'message:deleted', senderPayload);
+      await publishToUser(partnerId, 'message:deleted', recipientPayload);
+    } catch (err) {
+      console.error('[Message] Failed to publish message:deleted:', err.message);
+    }
+  } else {
+    // scope === 'me'
+    if (!message.deleted_for.includes(currentUserId)) {
+      message.deleted_for.push(currentUserId);
+      await message.save();
+    }
+
+    const payload = {
+      messageId: message._id.toString(),
+      conversationWith: partnerId,
+      scope: 'me',
+    };
+
+    try {
+      await publishToUser(currentUserId, 'message:deleted', payload);
+    } catch (err) {
+      console.error('[Message] Failed to publish message:deleted:', err.message);
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Message deleted successfully',
+  });
+});
+
+/**
+ * DELETE /api/messages/conversation/:userId
+ * Clear conversation history with user for current user only
+ */
+export const deleteConversation = asyncHandler(async (req, res) => {
+  const currentUserId = req.userId;
+  const targetUserId = req.params.userId;
+
+  await ConversationClear.findOneAndUpdate(
+    { user: currentUserId, with: targetUserId },
+    { cleared_at: new Date() },
+    { upsert: true, new: true }
+  );
+
+  try {
+    await publishToUser(currentUserId, 'conversation:deleted', { with: targetUserId });
+  } catch (err) {
+    console.error('[Message] Failed to publish conversation:deleted:', err.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Conversation cleared successfully',
   });
 });

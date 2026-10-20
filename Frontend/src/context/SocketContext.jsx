@@ -26,6 +26,8 @@ const USER_EVENTS = new Set([
 const FEED_EVENTS = new Set([
   'post:stats',
   'post:deleted',
+  'story:new',
+  'story:deleted',
 ]);
 
 export const SocketProvider = ({ children }) => {
@@ -135,16 +137,9 @@ export const SocketProvider = ({ children }) => {
       }
       try {
         await ably.auth.authorize();
-        // After reconnect, dispatch a global event to notify active pages to refetch
-        const onConnectedOnce = (stateChange) => {
-          if (stateChange.current === 'connected') {
-            ably.connection.off('status', onConnectedOnce);
-            window.dispatchEvent(
-              new CustomEvent('flownet:refetch_data', { detail: { reason: 'group_accepted', data } })
-            );
-          }
-        };
-        ably.connection.on('status', onConnectedOnce);
+        window.dispatchEvent(
+          new CustomEvent('flownet:refetch_data', { detail: { reason: 'group_accepted', data } })
+        );
       } catch (err) {
         console.warn('[Ably] Error refreshing capability:', err.message);
       }

@@ -51,6 +51,8 @@ const RecentMessages = ({ mobile = false }) => {
 
   useSocketEvent("message:new", handleNewMessage);
   useSocketEvent("message:seen", handleNewMessage);
+  useSocketEvent("message:deleted", handleNewMessage);
+  useSocketEvent("conversation:deleted", handleNewMessage);
 
   const unreadCount = messages.filter(
     (item) => !item.seen && item.to_user_id === currentUser?._id
@@ -174,7 +176,9 @@ const RecentMessages = ({ mobile = false }) => {
                         {partner.full_name || partner.username || "User"}
                       </p>
                       <p className="text-xs text-app-muted truncate">
-                        {item.text || "Photo attachment"}
+                        {item.is_unsent
+                          ? (t("messages.unsentPlaceholder") || "This message was unsent")
+                          : (item.text || (t("messages.media") || "Media"))}
                       </p>
                     </div>
                     <span className="text-[10px] text-app-muted shrink-0">
@@ -264,7 +268,9 @@ const RecentMessages = ({ mobile = false }) => {
                       isUnread ? "text-purple-600 dark:text-purple-300 font-semibold" : "text-app-muted"
                     }`}
                   >
-                    {item.text ? item.text : (t("messages.media") || "Media")}
+                    {item.is_unsent
+                      ? (t("messages.unsentPlaceholder") || "This message was unsent")
+                      : (item.text ? item.text : (t("messages.media") || "Media"))}
                   </p>
                 </div>
 

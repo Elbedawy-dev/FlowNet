@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Heart, MessageCircle, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Bell, Heart, MessageCircle, Image as ImageIcon, Sparkles, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import moment from 'moment';
 import { notificationsApi } from '../api/axios';
 import { useNotifications } from '../context/NotificationsContext';
@@ -63,6 +64,7 @@ const Notifications = () => {
   // Real-time notification updates
   const handleNewNotification = useCallback(
     (newNotif) => {
+      if (!newNotif?._id) return;
       let matches = false;
       if (filter === 'all') matches = true;
       else if (filter === 'likes' && newNotif.type === 'like') matches = true;
@@ -75,13 +77,53 @@ const Notifications = () => {
         matches = true;
 
       if (matches) {
-        setNotifications((prev) => [newNotif, ...prev]);
+        setNotifications((prev) => {
+          if (prev.some((n) => n._id === newNotif._id)) return prev;
+          return [newNotif, ...prev];
+        });
       }
     },
     [filter]
   );
 
   useSocketEvent('notification:new', handleNewNotification);
+
+  useSocketEvent(
+    'notification:deleted',
+    useCallback((data) => {
+      const ids = Array.isArray(data?.ids) ? data.ids : data?.id ? [data.id] : [];
+      if (!ids.length) {
+        setNotifications([]);
+        return;
+      }
+      const idSet = new Set(ids);
+      setNotifications((prev) => prev.filter((n) => !idSet.has(n._id)));
+    }, [])
+  );
+
+  const handleDeleteOne = async (e, id) => {
+    e.stopPropagation();
+    try {
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+      await notificationsApi.delete(id);
+      toast.success(t('notifications.notificationDeleted') || 'Notification deleted');
+    } catch (err) {
+      toast.error(err.message || t('common.error') || 'Failed to delete notification');
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm(t('notifications.clearAllConfirm') || 'Are you sure you want to clear all notifications?')) {
+      return;
+    }
+    try {
+      setNotifications([]);
+      await notificationsApi.clearAll();
+      toast.success(t('notifications.allCleared') || 'All notifications cleared');
+    } catch (err) {
+      toast.error(err.message || t('common.error') || 'Failed to clear notifications');
+    }
+  };
 
   // Infinite scroll hook
   const handleLoadMore = useCallback(() => {
@@ -187,6 +229,19 @@ const Notifications = () => {
             );
           })}
         </div>
+
+        {notifications.length > 0 && (
+          <div className="flex justify-end w-full mt-3">
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-pink-500 hover:text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 transition cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{t('notifications.clearAll') || 'Clear All'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -275,6 +330,16 @@ const Notifications = () => {
                     />
                   </div>
                 )}
+
+                {/* Delete button on hover / active */}
+                <button
+                  type="button"
+                  onClick={(e) => handleDeleteOne(e, n._id)}
+                  title={t('notifications.deleteNotification') || 'Delete notification'}
+                  className="p-2 rounded-xl text-app-muted hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0 self-center cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             ))}
 

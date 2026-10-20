@@ -39,8 +39,14 @@ export const NotificationsProvider = ({ children }) => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [fetchUnreadCount]);
 
+  const seenNotificationIdsRef = useRef(new Set());
+
   // Listen to realtime notification events via Ably channel subscription
   const handleNewNotification = useCallback((notification) => {
+    if (!notification?._id) return;
+    if (seenNotificationIdsRef.current.has(notification._id)) return;
+    seenNotificationIdsRef.current.add(notification._id);
+
     setUnreadCount((prev) => prev + 1);
 
     const actorName = notification.actor?.full_name || 'Someone';
@@ -87,8 +93,23 @@ export const NotificationsProvider = ({ children }) => {
   useSocketEvent(
     'notification:count',
     useCallback((data) => {
-      if (typeof data?.count === 'number') {
-        setUnreadCount(data.count);
+      const val = typeof data?.count === 'number'
+        ? data.count
+        : typeof data?.unread === 'number'
+        ? data.unread
+        : null;
+      if (val !== null) {
+        setUnreadCount(val);
+      }
+    }, [])
+  );
+
+  useSocketEvent(
+    'notification:deleted',
+    useCallback((data) => {
+      const ids = Array.isArray(data?.ids) ? data.ids : data?.id ? [data.id] : [];
+      for (const id of ids) {
+        seenNotificationIdsRef.current.delete(id);
       }
     }, [])
   );

@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { getBlockedUserIds, isBlockedEitherWay } from '../utils/blockUtils.js';
 import { uploadFromBuffer, deleteResource, extractPublicId } from '../config/cloudinary.js';
 import { sanitizeText } from '../utils/sanitize.js';
+import { publishToFeed } from '../realtime/index.js';
 
 /**
  * POST /api/stories
@@ -64,6 +65,12 @@ export const createStory = asyncHandler(async (req, res) => {
   const populatedStory = await Story.findById(story._id)
     .populate('user', '_id full_name username profile_picture is_verified')
     .lean();
+
+  try {
+    await publishToFeed('story:new', populatedStory);
+  } catch (err) {
+    console.error('[Story] Failed to publish story:new:', err.message);
+  }
 
   res.status(201).json({
     success: true,
@@ -204,6 +211,12 @@ export const deleteStory = asyncHandler(async (req, res) => {
   }
 
   await Story.findByIdAndDelete(story._id);
+
+  try {
+    await publishToFeed('story:deleted', { storyId: story._id.toString() });
+  } catch (err) {
+    console.error('[Story] Failed to publish story:deleted:', err.message);
+  }
 
   res.status(200).json({
     success: true,

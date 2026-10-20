@@ -56,37 +56,47 @@ const PostDetails = () => {
     if (!newC?._id) return;
     setComments((prev) => {
       if (prev.some((c) => c._id === newC._id)) return prev;
+      // Replace optimistic temp comment matching the same author and text
+      const tempIdx = prev.findIndex(
+        (c) =>
+          String(c._id).startsWith('temp-') &&
+          c.text === newC.text &&
+          (c.user?._id === newC.user?._id || c.user?._id === newC.user)
+      );
+      if (tempIdx !== -1) {
+        const next = [...prev];
+        next[tempIdx] = newC;
+        return next;
+      }
       return [...prev, newC];
     });
-    setPost((p) =>
-      p ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p
-    );
   }, []);
 
   const handleRealtimeDeleteComment = useCallback((data) => {
     const commentId = data?.commentId || data?.id || data;
     if (!commentId) return;
     setComments((prev) => prev.filter((c) => c._id !== commentId));
-    setPost((p) =>
-      p ? { ...p, comments_count: Math.max(0, (p.comments_count || 1) - 1) } : p
-    );
   }, []);
 
   const handleRealtimeStats = useCallback((data) => {
     if (!data) return;
-    setPost((p) =>
-      p
-        ? {
-            ...p,
-            likes_count: data.likesCount ?? p.likes_count,
-            comments_count: data.commentsCount ?? p.comments_count,
-          }
-        : p
-    );
+    setPost((p) => {
+      if (!p) return p;
+      const updated = { ...p };
+      if (data.commentsCount !== undefined) {
+        updated.comments_count = data.commentsCount;
+      }
+      if (data.sharesCount !== undefined) {
+        updated.shares_count = data.sharesCount;
+      }
+      return updated;
+    });
   }, []);
 
   useRoom('post', postId, {
+    'post:comment_added': handleRealtimeNewComment,
     'comment:new': handleRealtimeNewComment,
+    'post:comment_deleted': handleRealtimeDeleteComment,
     'comment:deleted': handleRealtimeDeleteComment,
     'post:stats': handleRealtimeStats,
   });
@@ -127,9 +137,12 @@ const PostDetails = () => {
 
     try {
       const savedComment = await postsApi.addComment(postId, commentText);
-      setComments((prev) =>
-        prev.map((c) => (c._id === tempId ? savedComment : c))
-      );
+      setComments((prev) => {
+        if (prev.some((c) => c._id === savedComment._id)) {
+          return prev.filter((c) => c._id !== tempId);
+        }
+        return prev.map((c) => (c._id === tempId ? savedComment : c));
+      });
     } catch (err) {
       // Rollback on failure
       setComments((prev) => prev.filter((c) => c._id !== tempId));

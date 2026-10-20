@@ -557,7 +557,6 @@ export const addComment = asyncHandler(async (req, res) => {
   const commentsCount = await Comment.countDocuments({ post: post._id });
   const likesCount = Array.isArray(post.likes_count) ? post.likes_count.length : 0;
   await publishToPost(post._id, 'post:comment_added', populatedComment);
-  await publishToPost(post._id, 'comment:new', populatedComment);
   const postStats = {
     postId: post._id,
     commentsCount,
@@ -602,7 +601,6 @@ export const deleteComment = asyncHandler(async (req, res) => {
   // Realtime emit
   const commentsCount = await Comment.countDocuments({ post: postId });
   await publishToPost(postId, 'post:comment_deleted', { commentId });
-  await publishToPost(postId, 'comment:deleted', { commentId });
   const postStats = {
     postId,
     commentsCount,

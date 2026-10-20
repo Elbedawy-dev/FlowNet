@@ -157,6 +157,9 @@ export const messagesApi = {
     api.get(`/messages/${userId}`, { params: { cursor, limit } }),
   send: (userId, data) => api.post(`/messages/${userId}`, data),
   markSeen: (userId) => api.put(`/messages/${userId}/seen`),
+  deleteMessage: (messageId, scope = 'me') =>
+    api.delete(`/messages/${messageId}`, { params: { scope } }),
+  deleteConversation: (userId) => api.delete(`/messages/conversation/${userId}`),
 };
 
 export const notificationsApi = {
@@ -165,6 +168,8 @@ export const notificationsApi = {
   getUnreadCount: () => api.get('/notifications/unread-count'),
   markAllRead: () => api.put('/notifications/read'),
   markRead: (id) => api.put(`/notifications/${id}/read`),
+  delete: (id) => api.delete(`/notifications/${id}`),
+  clearAll: () => api.delete('/notifications'),
 };
 
 export const groupsApi = {

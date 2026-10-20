@@ -68,6 +68,8 @@ const Messages = () => {
 
   useSocketEvent("message:new", handleMessageUpdate);
   useSocketEvent("message:seen", handleMessageUpdate);
+  useSocketEvent("message:deleted", handleMessageUpdate);
+  useSocketEvent("conversation:deleted", handleMessageUpdate);
 
   // Merge (a) recent conversations with (b) connections without message history
   const mergedConversations = useMemo(() => {
@@ -83,7 +85,9 @@ const Messages = () => {
 
       const isUnread = !item.seen && item.to_user_id === currentUser?._id;
       const isMedia = Boolean(item.media_url || item.message_type === "image");
-      const previewText = item.text
+      const previewText = item.is_unsent
+        ? (t("messages.unsentPlaceholder") || "This message was unsent")
+        : item.text
         ? item.text
         : isMedia
         ? (t("messages.media") || "Media")

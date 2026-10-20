@@ -5,6 +5,7 @@ import StoryWindow from "./StoryWindow";
 import StoryPlayer from "./StoryPlayer";
 import { storiesApi } from "../api/axios";
 import { useLanguage } from "../context/LanguageContext";
+import { useSocketEvent } from "../context/SocketContext";
 import Avatar from "./Avatar";
 
 const StoriesBar = () => {
@@ -25,6 +26,9 @@ const StoriesBar = () => {
   useEffect(() => {
     fetchStories();
   }, [fetchStories]);
+
+  useSocketEvent("story:new", fetchStories);
+  useSocketEvent("story:deleted", fetchStories);
 
   // Group stories by user so each user has one avatar bubble (showing their most recent story)
   const groupedStories = useMemo(() => {

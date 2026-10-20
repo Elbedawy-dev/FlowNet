@@ -4,6 +4,8 @@ import {
   getUnreadCount,
   markAllAsRead,
   markAsRead,
+  deleteNotification,
+  clearAllNotifications,
 } from '../controllers/notification.controller.js';
 import { requireAuth } from '../middlewares/auth.js';
 import { ensureUser } from '../middlewares/ensureUser.js';
@@ -13,8 +15,10 @@ const router = Router();
 router.use(requireAuth, ensureUser);
 
 router.get('/', getNotifications);
+router.delete('/', clearAllNotifications);
 router.get('/unread-count', getUnreadCount);
 router.put('/read', markAllAsRead);
 router.put('/:id/read', markAsRead);
+router.delete('/:id', deleteNotification);
 
 export default router;

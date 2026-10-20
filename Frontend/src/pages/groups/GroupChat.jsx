@@ -29,7 +29,7 @@ import moment from 'moment';
 import toast from 'react-hot-toast';
 import { groupsApi } from '../../api/axios';
 import { useCurrentUser } from '../../context/CurrentUserContext';
-import { useRoom } from '../../context/SocketContext';
+import { useRoom, useSocket, useSocketEvent } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 import Avatar from '../../components/Avatar';
 import Loading from '../../components/Loading';
@@ -51,6 +51,7 @@ const GroupChat = () => {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
   const { t } = useLanguage();
+  const { ably } = useSocket();
 
   const [group, setGroup] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -171,12 +172,25 @@ const GroupChat = () => {
         setMessages((prev) => {
           // Avoid duplicate messages if already present
           if (prev.some((m) => m._id === newMsg._id)) return prev;
+
+          // If from current user, replace matching temp message
+          if (newMsg.sender?._id === currentUser?._id || newMsg.sender === currentUser?._id) {
+            const tempIdx = prev.findIndex(
+              (m) => String(m._id).startsWith('temp-') && m.text === newMsg.text
+            );
+            if (tempIdx !== -1) {
+              const next = [...prev];
+              next[tempIdx] = newMsg;
+              return next;
+            }
+          }
+
           return [...prev, newMsg];
         });
         setTimeout(() => scrollToBottom(true), 50);
       }
     },
-    [groupId]
+    [groupId, currentUser?._id]
   );
 
   const handleGroupUpdated = useCallback(
@@ -236,13 +250,67 @@ const GroupChat = () => {
     [groupId, currentUser?._id, navigate]
   );
 
+  const handleMemberRemoved = useCallback(
+    (data) => {
+      if (data.groupId === groupId) {
+        if (data.userId === currentUser?._id) {
+          toast.error(t('groups.removedFromGroup') || 'You have been removed from this group');
+          navigate('/groups/joined');
+        } else {
+          setGroup((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  members_count: Math.max(1, (prev.members_count || 1) - 1),
+                  members_list: (prev.members_list || []).filter((m) => m._id !== data.userId),
+                }
+              : prev
+          );
+        }
+      }
+    },
+    [groupId, currentUser?._id, navigate, t]
+  );
+
   useRoom('group', groupId, {
     'group:message': handleNewMessage,
     'group:updated': handleGroupUpdated,
     'group:deleted': handleGroupDeleted,
     'group:member_joined': handleMemberJoined,
     'group:member_left': handleMemberLeft,
+    'group:member_removed': handleMemberRemoved,
   });
+
+  useSocketEvent(
+    'group:request',
+    useCallback(
+      (data) => {
+        if (data?.groupId === groupId && (group?.is_owner || group?.is_admin)) {
+          fetchPendingRequests();
+        }
+      },
+      [groupId, group?.is_owner, group?.is_admin, fetchPendingRequests]
+    )
+  );
+
+  useSocketEvent(
+    'group:request_accepted',
+    useCallback(
+      async (data) => {
+        if (ably) {
+          try {
+            await ably.auth.authorize();
+          } catch (e) {
+            console.warn('[Ably] auth.authorize failed:', e.message);
+          }
+        }
+        if (data?.groupId === groupId) {
+          loadGroupAndChat();
+        }
+      },
+      [ably, groupId, loadGroupAndChat]
+    )
+  );
 
   // Request actions
   const handleAcceptRequest = async (userId) => {
@@ -405,12 +473,18 @@ const GroupChat = () => {
       setTimeout(() => scrollToBottom(true), 50);
 
       const serverMsg = await groupsApi.sendMessage(groupId, formData);
+      const actualMsg = serverMsg.data || serverMsg;
 
-      // Replace optimistic message
-      setMessages((prev) =>
-        prev.map((m) => (m._id === tempId ? (serverMsg.data || serverMsg) : m))
-      );
+      // Replace optimistic message or clean up if already added by real-time event
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === actualMsg._id)) {
+          return prev.filter((m) => m._id !== tempId);
+        }
+        return prev.map((m) => (m._id === tempId ? actualMsg : m));
+      });
     } catch (err) {
+      // Rollback optimistic message
+      setMessages((prev) => prev.filter((m) => m._id !== tempId));
       toast.error(err.message || t('common.error'));
     } finally {
       setSending(false);

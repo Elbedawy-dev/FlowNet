@@ -100,11 +100,14 @@ const Home = () => {
       setPosts((prev) =>
         prev.map((p) => {
           if (p._id !== data.postId) return p;
-          return {
-            ...p,
-            likes_count: data.likesCount ?? p.likes_count,
-            comments_count: data.commentsCount ?? p.comments_count,
-          };
+          const updated = { ...p };
+          if (data.commentsCount !== undefined) {
+            updated.comments_count = data.commentsCount;
+          }
+          if (data.sharesCount !== undefined) {
+            updated.shares_count = data.sharesCount;
+          }
+          return updated;
         })
       );
     }, [])

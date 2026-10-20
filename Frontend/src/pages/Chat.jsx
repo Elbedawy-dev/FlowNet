@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Image as ImageIcon, X, ShieldAlert, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, Image as ImageIcon, X, ShieldAlert, Check, CheckCheck, Trash2, MoreVertical } from "lucide-react";
 import moment from "moment";
 import toast from "react-hot-toast";
 import { messagesApi, usersApi } from "../api/axios";
@@ -27,6 +27,7 @@ const Chat = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -61,7 +62,7 @@ const Chat = () => {
     fetchConversation();
   }, [fetchConversation]);
 
-  // Real-time Ably message:new and message:seen
+  // Real-time Ably events
   const handleNewMessage = useCallback(
     (msg) => {
       // Check if message belongs to this conversation
@@ -72,6 +73,23 @@ const Chat = () => {
         setMessages((prev) => {
           // Avoid duplicate messages
           if (prev.some((m) => m._id === msg._id)) return prev;
+
+          // If this is my own message, replace matching optimistic temp message
+          if (isFromMe) {
+            const tempIdx = prev.findIndex(
+              (m) =>
+                String(m._id).startsWith("temp-") &&
+                m.from_user_id === currentUser?._id &&
+                m.to_user_id === userId &&
+                m.text === msg.text
+            );
+            if (tempIdx !== -1) {
+              const next = [...prev];
+              next[tempIdx] = msg;
+              return next;
+            }
+          }
+
           return [...prev, msg];
         });
         setTimeout(() => scrollToBottom("smooth"), 100);
@@ -98,8 +116,64 @@ const Chat = () => {
     [userId, currentUser?._id]
   );
 
+  const handleMessageDeleted = useCallback((data) => {
+    if (!data?.messageId) return;
+    setMessages((prev) => {
+      if (data.scope === "everyone") {
+        return prev.map((m) =>
+          m._id === data.messageId
+            ? { ...m, is_unsent: true, text: "", media_url: "" }
+            : m
+        );
+      }
+      return prev.filter((m) => m._id !== data.messageId);
+    });
+  }, []);
+
+  const handleConversationDeleted = useCallback(
+    (data) => {
+      if (data?.with === userId) {
+        setMessages([]);
+      }
+    },
+    [userId]
+  );
+
   useSocketEvent("message:new", handleNewMessage);
   useSocketEvent("message:seen", handleMessageSeen);
+  useSocketEvent("message:deleted", handleMessageDeleted);
+  useSocketEvent("conversation:deleted", handleConversationDeleted);
+
+  const handleDeleteMessage = async (messageId, scope = "me") => {
+    setActiveMenuMsgId(null);
+    try {
+      setMessages((prev) => {
+        if (scope === "everyone") {
+          return prev.map((m) =>
+            m._id === messageId ? { ...m, is_unsent: true, text: "", media_url: "" } : m
+          );
+        }
+        return prev.filter((m) => m._id !== messageId);
+      });
+      await messagesApi.deleteMessage(messageId, scope);
+      toast.success(t("messages.messageDeleted") || "Message deleted");
+    } catch (err) {
+      toast.error(err.message || t("common.error") || "Failed to delete message");
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!window.confirm(t("messages.deleteConversationConfirm") || "Are you sure you want to delete this chat?")) {
+      return;
+    }
+    try {
+      setMessages([]);
+      await messagesApi.deleteConversation(userId);
+      toast.success(t("messages.conversationCleared") || "Chat cleared");
+    } catch (err) {
+      toast.error(err.message || t("common.error") || "Failed to clear chat");
+    }
+  };
 
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
@@ -161,9 +235,12 @@ const Chat = () => {
         res = await messagesApi.send(userId, { text: textToSend });
       }
 
-      setMessages((prev) =>
-        prev.map((m) => (m._id === tempId ? res : m))
-      );
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === res._id)) {
+          return prev.filter((m) => m._id !== tempId);
+        }
+        return prev.map((m) => (m._id === tempId ? res : m));
+      });
     } catch (err) {
       // Rollback optimistic message
       setMessages((prev) => prev.filter((m) => m._id !== tempId));
@@ -255,6 +332,18 @@ const Chat = () => {
             </div>
           </div>
         </div>
+
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <button
+              onClick={handleDeleteConversation}
+              className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-app-muted hover:text-red-400 transition-all cursor-pointer"
+              title={t("messages.deleteConversation") || "Delete chat"}
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Blocked by Me Banner */}
@@ -325,48 +414,117 @@ const Chat = () => {
                     />
                   )}
 
-                  <div
-                    className={`max-w-[78%] sm:max-w-[65%] rounded-3xl p-3.5 shadow-md ${
-                      isMe
-                        ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white rounded-ee-xs shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                        : "bg-app-card text-app rounded-es-xs border border-app"
-                    }`}
-                  >
-                    {/* Media attachment */}
-                    {msg.media_url && (
-                      <div className="mb-2 rounded-2xl overflow-hidden cursor-pointer">
-                        <img
-                          src={msg.media_url}
-                          alt="Message attachment"
-                          onClick={() => setViewingImage(msg.media_url)}
-                          className="max-h-60 w-full object-cover rounded-2xl hover:opacity-95 transition"
-                        />
+                  <div className="relative group/msg flex items-center">
+                    {!isMe && !msg.is_unsent && !String(msg._id).startsWith("temp-") && (
+                      <div className="relative order-last ms-1">
+                        <button
+                          type="button"
+                          onClick={() => setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id)}
+                          className="opacity-0 group-hover/msg:opacity-100 p-1 rounded-full hover:bg-white/10 text-app-muted hover:text-app transition-opacity cursor-pointer"
+                          title={t("common.more") || "More"}
+                        >
+                          <MoreVertical size={13} />
+                        </button>
+                        {activeMenuMsgId === msg._id && (
+                          <div className="absolute z-30 bottom-full mb-1 start-0 min-w-36 py-1 bg-app-card border border-app rounded-xl shadow-xl backdrop-blur-md text-xs">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMessage(msg._id, "me")}
+                              className="w-full text-start px-3 py-1.5 hover:bg-white/10 text-app flex items-center gap-2 cursor-pointer"
+                            >
+                              <Trash2 size={12} className="text-red-400" />
+                              <span>{t("messages.deleteForMe") || "Delete for me"}</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* Text */}
-                    {msg.text && (
-                      <p className="text-sm whitespace-pre-line break-words leading-relaxed">
-                        {msg.text}
-                      </p>
+                    {isMe && !msg.is_unsent && !String(msg._id).startsWith("temp-") && (
+                      <div className="relative order-first me-1">
+                        <button
+                          type="button"
+                          onClick={() => setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id)}
+                          className="opacity-0 group-hover/msg:opacity-100 p-1 rounded-full hover:bg-white/10 text-app-muted hover:text-app transition-opacity cursor-pointer"
+                          title={t("common.more") || "More"}
+                        >
+                          <MoreVertical size={13} />
+                        </button>
+                        {activeMenuMsgId === msg._id && (
+                          <div className="absolute z-30 bottom-full mb-1 end-0 min-w-40 py-1 bg-app-card border border-app rounded-xl shadow-xl backdrop-blur-md text-xs">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMessage(msg._id, "me")}
+                              className="w-full text-start px-3 py-1.5 hover:bg-white/10 text-app flex items-center gap-2 cursor-pointer"
+                            >
+                              <Trash2 size={12} className="text-red-400" />
+                              <span>{t("messages.deleteForMe") || "Delete for me"}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMessage(msg._id, "everyone")}
+                              className="w-full text-start px-3 py-1.5 hover:bg-white/10 text-pink-400 flex items-center gap-2 cursor-pointer"
+                            >
+                              <span>🚫</span>
+                              <span>{t("messages.unsendForEveryone") || "Unsend for everyone"}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
 
-                    {/* Timestamp & seen indicator */}
                     <div
-                      className={`flex items-center gap-1 text-[10px] mt-1 ${
-                        isMe ? "text-purple-200 justify-end" : "text-app-muted justify-start"
-                      }`}
+                      className={`max-w-[78%] sm:max-w-[65%] rounded-3xl p-3.5 shadow-md ${
+                        isMe
+                          ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white rounded-ee-xs shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                          : "bg-app-card text-app rounded-es-xs border border-app"
+                      } ${msg.is_unsent ? "opacity-75 italic" : ""}`}
                     >
-                      <span>{moment(msg.createdAt).format("h:mm A")}</span>
-                      {isMe && (
-                        <span>
-                          {msg.seen ? (
-                            <CheckCheck size={13} className="text-cyan-300" />
-                          ) : (
-                            <Check size={13} className="text-purple-200" />
+                      {msg.is_unsent ? (
+                        <p className="text-xs opacity-80 flex items-center gap-1.5 py-1">
+                          <span>🚫</span>
+                          <span>{t("messages.unsentPlaceholder") || "This message was unsent"}</span>
+                        </p>
+                      ) : (
+                        <>
+                          {/* Media attachment */}
+                          {msg.media_url && (
+                            <div className="mb-2 rounded-2xl overflow-hidden cursor-pointer">
+                              <img
+                                src={msg.media_url}
+                                alt="Message attachment"
+                                onClick={() => setViewingImage(msg.media_url)}
+                                className="max-h-60 w-full object-cover rounded-2xl hover:opacity-95 transition"
+                              />
+                            </div>
                           )}
-                        </span>
+
+                          {/* Text */}
+                          {msg.text && (
+                            <p className="text-sm whitespace-pre-line break-words leading-relaxed">
+                              {msg.text}
+                            </p>
+                          )}
+                        </>
                       )}
+
+                      {/* Timestamp & seen indicator */}
+                      <div
+                        className={`flex items-center gap-1 text-[10px] mt-1 ${
+                          isMe ? "text-purple-200 justify-end" : "text-app-muted justify-start"
+                        }`}
+                      >
+                        <span>{moment(msg.createdAt).format("h:mm A")}</span>
+                        {isMe && !msg.is_unsent && (
+                          <span>
+                            {msg.seen ? (
+                              <CheckCheck size={13} className="text-cyan-300" />
+                            ) : (
+                              <Check size={13} className="text-purple-200" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

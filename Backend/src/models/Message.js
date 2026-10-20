@@ -29,6 +29,16 @@ const messageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    deleted_for: [
+      {
+        type: String,
+        ref: 'User',
+      },
+    ],
+    is_unsent: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

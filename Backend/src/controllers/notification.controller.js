@@ -200,3 +200,55 @@ export const markAsRead = asyncHandler(async (req, res) => {
     data: notification,
   });
 });
+
+/**
+ * DELETE /api/notifications/:id
+ * Delete a single notification
+ */
+export const deleteNotification = asyncHandler(async (req, res) => {
+  const notification = await Notification.findOneAndDelete({
+    _id: req.params.id,
+    user: req.userId,
+  });
+
+  if (!notification) {
+    throw ApiError.notFound('Notification not found');
+  }
+
+  const unreadCount = await Notification.countDocuments({ user: req.userId, read: false });
+
+  try {
+    await publishToUser(req.userId, 'notification:deleted', { ids: [req.params.id] });
+    await publishToUser(req.userId, 'notification:count', { count: unreadCount });
+  } catch (err) {
+    console.error('[Notification] Failed to publish delete notification events:', err.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Notification deleted successfully',
+  });
+});
+
+/**
+ * DELETE /api/notifications
+ * Clear all notifications for the current user
+ */
+export const clearAllNotifications = asyncHandler(async (req, res) => {
+  const allNotifs = await Notification.find({ user: req.userId }).select('_id').lean();
+  const ids = allNotifs.map((n) => n._id.toString());
+
+  await Notification.deleteMany({ user: req.userId });
+
+  try {
+    await publishToUser(req.userId, 'notification:deleted', { ids });
+    await publishToUser(req.userId, 'notification:count', { count: 0 });
+  } catch (err) {
+    console.error('[Notification] Failed to publish clear all notification events:', err.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'All notifications cleared successfully',
+  });
+});
